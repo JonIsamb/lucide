@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/catalog/presentation/catalog_screen.dart';
-import 'features/game/game_screen.dart';
+import 'features/game/presentation/game_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/simulator/simulator_screen.dart';
 
@@ -41,11 +41,11 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       body: IndexedStack(
         index: _index,
-        children: const [
-          HomeScreen(),
-          CatalogScreen(),
-          SimulatorScreen(),
-          GameScreen(),
+        children: [
+          const HomeScreen(),
+          const CatalogScreen(),
+          const SimulatorScreen(),
+          GameScreen(onGoHome: () => setState(() => _index = 0)),
         ],
       ),
       bottomNavigationBar: NavigationBar(

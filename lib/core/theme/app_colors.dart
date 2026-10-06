@@ -29,6 +29,11 @@ abstract final class AppColors {
   /// Price went down, and alerts (corail).
   static const fall = Color(0xFFB23A24);
 
+  /// Light backgrounds behind rise and fall text (game result banners).
+  /// rise on riseTint and fall on fallTint keep the 4.5:1 ratio.
+  static const riseTint = Color(0xFFDDF0E7);
+  static const fallTint = Color(0xFFFDE8E3);
+
   /// Grey used by loading skeletons.
   static const skeleton = Color(0xFFECE7E2);
 }
