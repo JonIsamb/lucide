@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../features/catalog/domain/weekly_candle.dart';
 import 'api_exception.dart';
+import 'market_data_api.dart';
 import 'rate_limiter.dart';
 
 /// How many weekly candles we ask for on a full download: about 5 years.
@@ -18,7 +19,7 @@ const fullHistoryWeeks = 261;
 ///
 /// Every request first waits for the [RateLimiter], so the free plan
 /// quota (8 credits per minute) is never exceeded.
-class TwelveDataClient {
+class TwelveDataClient implements MarketDataApi {
   TwelveDataClient({
     required this.apiKey,
     required this.rateLimiter,
@@ -37,6 +38,7 @@ class TwelveDataClient {
   /// With [startDate], only the candles from that date are returned
   /// (incremental update). [exchange] picks the US listing of tickers that
   /// also exist abroad.
+  @override
   Future<List<WeeklyCandle>> fetchWeeklySeries(
     String symbol, {
     String? exchange,
@@ -54,6 +56,7 @@ class TwelveDataClient {
   }
 
   /// URL of the logo of [symbol], or null if Twelve Data has none.
+  @override
   Future<String?> fetchLogoUrl(String symbol, {String? exchange}) async {
     final json = await _get('/logo', {
       'symbol': symbol,
