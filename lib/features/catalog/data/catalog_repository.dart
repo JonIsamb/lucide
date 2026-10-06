@@ -8,6 +8,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/market_data_api.dart';
 import '../../../core/providers.dart';
+import '../../asset_detail/domain/asset_detail.dart';
 import '../domain/asset_metrics.dart';
 import '../domain/asset_overview.dart';
 import '../domain/instrument.dart';
@@ -108,6 +109,21 @@ class CatalogRepository {
     return _buildOverview(row, favorites.contains(symbol), meta);
   }
 
+  /// One asset with its whole stored history, for the detail screen.
+  /// No network. Null when the symbol is not in the catalogue.
+  Future<AssetDetail?> loadDetail(String symbol) async {
+    final row = await _database.instrumentsDao.instrument(symbol);
+    if (row == null) return null;
+    final meta = await _database.cacheMetaDao.metaFor(symbol);
+    final candles = await _database.candlesDao.allCandles(symbol);
+    return AssetDetail(
+      instrument: _toInstrument(row),
+      candles: candles.map(_toCandle).toList(),
+      logoUrl: _logoOrNull(meta),
+      lastFetchedAt: meta?.lastFetchedAt,
+    );
+  }
+
   Future<void> setFavorite(String symbol, bool isFavorite) {
     return _database.favoritesDao.setFavorite(symbol, isFavorite);
   }
@@ -195,6 +211,18 @@ class CatalogRepository {
     await _database.cacheMetaDao.markFetched(symbol, _now());
   }
 
+  /// Applies the cache decision ([needsRefresh]) to one asset, for the
+  /// detail screen. Returns true when the series was downloaded.
+  Future<bool> refreshSeriesIfNeeded(
+    String symbol, {
+    bool force = false,
+  }) async {
+    final meta = await _database.cacheMetaDao.metaFor(symbol);
+    if (!needsRefresh(meta?.lastFetchedAt, _now(), force: force)) return false;
+    await refreshSeries(symbol);
+    return true;
+  }
+
   /// Asks Twelve Data for the logo once. "No logo" is remembered too.
   Future<void> refreshLogo(String symbol) async {
     final exchange = (await _database.instrumentsDao.instrument(symbol))
@@ -258,33 +286,38 @@ class CatalogRepository {
       row.symbol,
       weeksInOneYear,
     );
-    final logoUrl = meta?.logoUrl;
     return AssetOverview.fromCandles(
-      instrument: Instrument(
-        symbol: row.symbol,
-        name: row.name,
-        type: InstrumentType.fromName(row.type),
-        currency: row.currency,
-        peaEligible: row.peaEligible,
-        description: row.description,
-        exchange: row.exchange,
-      ),
+      instrument: _toInstrument(row),
       isFavorite: isFavorite,
-      candles: [
-        for (final c in candles)
-          WeeklyCandle(
-            date: c.date,
-            open: c.open,
-            high: c.high,
-            low: c.low,
-            close: c.close,
-            volume: c.volume,
-          ),
-      ],
-      // The empty-string marker means "no logo" for the UI too.
-      logoUrl: (logoUrl == null || logoUrl.isEmpty) ? null : logoUrl,
+      candles: candles.map(_toCandle).toList(),
+      logoUrl: _logoOrNull(meta),
       lastFetchedAt: meta?.lastFetchedAt,
     );
+  }
+
+  static Instrument _toInstrument(InstrumentRow row) => Instrument(
+    symbol: row.symbol,
+    name: row.name,
+    type: InstrumentType.fromName(row.type),
+    currency: row.currency,
+    peaEligible: row.peaEligible,
+    description: row.description,
+    exchange: row.exchange,
+  );
+
+  static WeeklyCandle _toCandle(CandleRow row) => WeeklyCandle(
+    date: row.date,
+    open: row.open,
+    high: row.high,
+    low: row.low,
+    close: row.close,
+    volume: row.volume,
+  );
+
+  /// The empty-string marker means "no logo" for the UI too.
+  static String? _logoOrNull(CacheMetaRow? meta) {
+    final url = meta?.logoUrl;
+    return (url == null || url.isEmpty) ? null : url;
   }
 
   static List<WeeklyCandlesCompanion> _toRows(

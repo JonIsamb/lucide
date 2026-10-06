@@ -4,7 +4,13 @@ import 'package:lucide/features/catalog/domain/asset_metrics.dart';
 import '../../../helpers.dart';
 
 void main() {
-  group('yearlyChangePercent', () {
+  group('changePercent', () {
+    test('the catalogue alias gives the same result', () {
+      final candles = weeklySeries([100, 90, 125]);
+      expect(changePercent(candles), 25);
+      expect(yearlyChangePercent(candles), changePercent(candles));
+    });
+
     test('normal case: first to last close', () {
       expect(yearlyChangePercent(weeklySeries([100, 90, 125])), 25);
     });

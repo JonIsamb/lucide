@@ -105,6 +105,21 @@ class CatalogController extends AsyncNotifier<CatalogState> {
     await _repository.setFavorite(symbol, isFavorite);
   }
 
+  /// Re-reads one row from the database, after the detail screen
+  /// downloaded its series.
+  Future<void> reloadAsset(String symbol) async {
+    final updated = await _repository.loadOverview(symbol);
+    if (updated == null || !ref.mounted) return;
+    // Keep the star the user may have tapped in the meantime.
+    _update(
+      (s) => s.withAsset(
+        updated.copyWith(
+          isFavorite: s.assets.firstWhere((a) => a.symbol == symbol).isFavorite,
+        ),
+      ),
+    );
+  }
+
   /// Applies [change] to the current data, if there is any.
   void _update(CatalogState Function(CatalogState) change) {
     final current = state.value;

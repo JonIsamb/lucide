@@ -176,6 +176,54 @@ void main() {
     expect((await repository.loadOverview('SPY'))!.hasPrice, isTrue);
   });
 
+  group('loadDetail', () {
+    test('unknown symbol', () async {
+      expect(await repository.loadDetail('NOPE'), isNull);
+    });
+
+    test('never downloaded: the asset without prices', () async {
+      final detail = (await repository.loadDetail('AAPL'))!;
+      expect(detail.instrument.name, 'Apple');
+      expect(detail.hasPrices, isFalse);
+      expect(detail.lastPrice, isNull);
+      expect(detail.lastFetchedAt, isNull);
+      expect(api.seriesCalls, isEmpty);
+    });
+
+    test('whole history, oldest first, with its fetch time', () async {
+      api.series['AAPL'] = weeklySeries([
+        for (var i = 0; i < 80; i++) 100.0 + i,
+      ]);
+      await repository.refreshSeries('AAPL');
+
+      final detail = (await repository.loadDetail('AAPL'))!;
+      // More than the 53 candles the catalogue row reads.
+      expect(detail.candles, hasLength(80));
+      expect(detail.candles.first.close, 100);
+      expect(detail.lastPrice, 179);
+      expect(detail.lastFetchedAt, now);
+    });
+  });
+
+  group('refreshSeriesIfNeeded', () {
+    test('downloads when never fetched, then keeps fresh data', () async {
+      expect(await repository.refreshSeriesIfNeeded('AAPL'), isTrue);
+      expect(await repository.refreshSeriesIfNeeded('AAPL'), isFalse);
+      expect(api.seriesCalls, hasLength(1));
+    });
+
+    test('downloads again after 6 hours, or when forced', () async {
+      await repository.refreshSeriesIfNeeded('AAPL');
+      expect(
+        await repository.refreshSeriesIfNeeded('AAPL', force: true),
+        isTrue,
+      );
+      now = now.add(const Duration(hours: 7));
+      expect(await repository.refreshSeriesIfNeeded('AAPL'), isTrue);
+      expect(api.seriesCalls, hasLength(3));
+    });
+  });
+
   test('overlapMismatch', () {
     expect(overlapMismatch(100, 100.9), isFalse);
     expect(overlapMismatch(100, 101.1), isTrue);
