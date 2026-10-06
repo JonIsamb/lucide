@@ -1,17 +1,26 @@
-# lucide
+# Lucide
 
-A new Flutter project.
+Lucide shows a beginner investor what they would really earn, and why
+nobody can predict a price chart. Flutter app, INSA Hauts-de-France,
+FISA 5 INFO, 2026/2027.
 
-## Getting Started
+## Run
 
-This project is a starting point for a Flutter application.
+The app reads its Twelve Data API key at build time; the key is never committed.
 
-A few resources to get you started if this is your first Flutter project:
+```sh
+flutter pub get
+dart run build_runner build          # generates the drift database code
+flutter run --dart-define=TWELVE_DATA_API_KEY=your_key
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Or put `{"TWELVE_DATA_API_KEY": "your_key"}` in `secrets.json` (gitignored) and run
+`flutter run --dart-define-from-file=secrets.json`.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Tests
+
+```sh
+flutter test
+```
+
+The font (Nunito, SIL Open Font License, see `assets/fonts/OFL.txt`) is bundled so the app works offline.

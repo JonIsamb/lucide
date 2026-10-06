@@ -1,0 +1,8 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # ISO-8601 text keeps UTC dates in UTC: a candle of "2026-10-05"
+          # is read back as that day, whatever the phone's time zone.
+          store_date_time_values_as_text: true
