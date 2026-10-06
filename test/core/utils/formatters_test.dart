@@ -15,6 +15,8 @@ void main() {
     expect(plain(formatPrice(227.4, 'USD')), r'227,40 $');
     expect(plain(formatPrice(0.62346, 'EUR')), '0,6235 €');
     expect(plain(formatPrice(-12.5, 'USD')), '−12,50 \$');
+    expect(plain(formatPrice(2180.45, 'EUR', compact: true)), '2 180 €');
+    expect(plain(formatPrice(227.4, 'USD', compact: true)), r'227,40 $');
   });
 
   test('percentages have an explicit sign and a real minus', () {

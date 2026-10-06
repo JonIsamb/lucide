@@ -4,42 +4,9 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide/core/database/app_database.dart';
 import 'package:lucide/core/network/api_exception.dart';
-import 'package:lucide/core/network/market_data_api.dart';
 import 'package:lucide/features/catalog/data/catalog_repository.dart';
-import 'package:lucide/features/catalog/domain/weekly_candle.dart';
 
 import '../../../helpers.dart';
-
-/// Fake API: serves prepared series and remembers every call.
-class FakeApi implements MarketDataApi {
-  final Map<String, List<WeeklyCandle>> series = {};
-  final Map<String, String?> logos = {};
-  final Map<String, ApiException> errors = {};
-
-  /// (symbol, startDate) of each /time_series call.
-  final List<(String, DateTime?)> seriesCalls = [];
-  final List<String> logoCalls = [];
-
-  @override
-  Future<List<WeeklyCandle>> fetchWeeklySeries(
-    String symbol, {
-    String? exchange,
-    DateTime? startDate,
-  }) async {
-    seriesCalls.add((symbol, startDate));
-    if (errors[symbol] case final error?) throw error;
-    final all = series[symbol] ?? const [];
-    if (startDate == null) return all;
-    return all.where((c) => !c.date.isBefore(startDate)).toList();
-  }
-
-  @override
-  Future<String?> fetchLogoUrl(String symbol, {String? exchange}) async {
-    logoCalls.add(symbol);
-    if (errors[symbol] case final error?) throw error;
-    return logos[symbol];
-  }
-}
 
 const catalogJson = [
   {'symbol': 'AAPL', 'name': 'Apple', 'type': 'stock', 'currency': 'USD'},

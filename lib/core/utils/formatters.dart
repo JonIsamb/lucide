@@ -13,14 +13,19 @@ const minusSign = '−';
 /// "1 234,56 $", "54 210 €", "0,6234 €".
 ///
 /// Big values lose their cents (they add noise), and values below 1 keep
-/// 4 decimals so a cheap crypto does not show "0,00 €".
-String formatPrice(double value, String currencyCode) {
+/// 4 decimals so a cheap crypto does not show "0,00 €". With [compact]
+/// (narrow places like list rows), cents are dropped from 1 000 on:
+/// "2 180 €".
+String formatPrice(double value, String currencyCode, {bool compact = false}) {
   final abs = value.abs();
-  final decimals = abs >= 10000
-      ? 0
-      : abs < 1
-      ? 4
-      : 2;
+  final int decimals;
+  if (abs >= (compact ? 1000 : 10000)) {
+    decimals = 0;
+  } else if (abs < 1) {
+    decimals = 4;
+  } else {
+    decimals = 2;
+  }
   final number = _replaceMinus(_decimalFormat(decimals).format(value));
   return '$number$_nbsp${currencySymbol(currencyCode)}';
 }
