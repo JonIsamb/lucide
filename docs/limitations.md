@@ -15,3 +15,14 @@ Ce fichier alimente le rapport.
 - **Volume.** Moyenne des volumes hebdomadaires fournis par Twelve Data ; absent pour les cryptos, remplacé par le nombre de semaines observées.
 - **Fraîcheur.** Le point devient corail après 3 jours de bourse sans mise à jour, y compris pour les cryptos (règle existante `isStale`) ; la règle de 2 jours calendaires pour les cryptos reste à faire.
 - **État « initial ».** La fiche est toujours ouverte pour un symbole : l'état « aucun symbole sélectionné » n'existe pas sur cet écran.
+
+## Jeu « Teste ton intuition » (étape graphique)
+
+- **Courbes fictives.** Les 20 manches viennent de `sample_rounds.dart` : des courbes inventées, générées avec une graine fixe, sous des noms neutres (« Actif exemple 3 »). Le tirage dans les séries hebdomadaires en base n'est pas encore codé.
+- **Statistiques d'exemple.** « Parties jouées », « meilleur score » et « moyenne » sont des valeurs fixes : les parties ne sont pas encore enregistrées.
+- **Mode indice non défini.** Le bouton « Voir un indice » est affiché mais désactivé.
+- **Référence « toujours hausse » absente.** Le bilan compare le score au hasard seulement.
+- **Cours inchangé compté comme « plus bas ».** Si le cours après 4 semaines est exactement égal au dernier cours visible, la bonne réponse est « plus bas » (le cours n'est pas plus haut).
+- **Échelle horizontale de la zone masquée.** Les 4 semaines masquées occupent plus de largeur par semaine que les 26 semaines visibles, pour rester lisibles. La pente de la suite révélée paraît donc plus douce qu'elle ne l'est.
+- **Échelle verticale.** Pendant la manche, l'échelle ne tient compte que des semaines visibles, pour ne pas trahir la réponse ; elle s'élargit pendant la révélation.
+- **Jeu indisponible.** Sans aucune manche, l'écran affiche un simple message ; l'état « cache vide et seed absent » avec explication reste à faire.

@@ -79,7 +79,7 @@ void main() {
 
     await tester.tap(find.text('Jeu'));
     await tester.pumpAndSettle();
-    expect(find.text('Teste ton intuition'), findsOneWidget);
+    expect(find.text('Manche 1 sur 20'), findsOneWidget);
   });
 
   testWidgets('catalogue shows prices and changes in French', (tester) async {

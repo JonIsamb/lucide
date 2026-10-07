@@ -45,3 +45,47 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : le bouton ouvre l'écran provisoire du simulateur.
 - **Alternative écartée** : masquer le bouton tant que le module n'existe pas.
 - **Justification** : le parcours de la maquette est visible en démonstration, et un module non terminé ne casse rien.
+
+## Jeu « Teste ton intuition » : écrans (étape graphique)
+
+### Courbe du jeu dessinée avec un `CustomPainter`
+
+- **Décision** : `MysteryChart` dessine la courbe, la zone masquée et la suite révélée dans un `CustomPainter`.
+- **Alternative écartée** : `fl_chart`.
+- **Justification** : la révélation trace la suite point par point (longueur de tracé pilotée par un `AnimationController`), ce qui demande un contrôle direct du dessin. Aucune dépendance ajoutée, et le code reste court et explicable, sur le modèle de `Sparkline`.
+
+### Palette de l'app plutôt que celle des maquettes
+
+- **Décision** : les écrans du jeu reprennent la mise en page des maquettes avec les couleurs d'`AppColors` (bordeaux, sable). Deux teintes ajoutées : `riseTint` et `fallTint`, pour les fonds des bandeaux de résultat.
+- **Alternative écartée** : le violet des maquettes, réservé au jeu.
+- **Justification** : une seule identité visuelle dans toute l'app ; les couleurs gardent le même sens partout (vert : hausse, corail : baisse).
+
+### Couleur du bandeau : bonne ou mauvaise réponse ; flèche : sens du cours
+
+- **Décision** : le bandeau de révélation est vert quand le joueur a raison et corail quand il a tort ; la flèche et la suite de la courbe indiquent ce que le cours a fait.
+- **Alternative écartée** : tout colorer selon le sens du cours.
+- **Justification** : le joueur veut d'abord savoir s'il a gagné la manche.
+
+### État du jeu dans un `Notifier`, animation dans le Widget
+
+- **Décision** : `GameController` (`Notifier<GameState>`) porte la manche courante, les réponses et la phase. Le seul état gardé dans un Widget est l'`AnimationController` de la révélation, créé dans `initState` et libéré dans `dispose`.
+- **Alternative écartée** : un `StatefulWidget` qui garde les réponses.
+- **Justification** : la partie survit au changement d'onglet et se teste sans interface (`game_controller_test.dart`).
+
+### Règles du jeu dans `domain/`
+
+- **Décision** : `game_verdict.dart` contient les fonctions pures : variation sur les semaines masquées, bonne réponse, comparaison du score au hasard (bornes 6 et 14).
+- **Alternative écartée** : calculer ces valeurs dans les Widgets.
+- **Justification** : Dart pur, testé avec les cas limites (série vide, prix nul, égalité, bornes 5, 6, 14, 15).
+
+### Barre d'onglets toujours visible
+
+- **Décision** : le jeu reste dans l'onglet Jeu ; « Manche suivante » et « Accueil / Rejouer » sont dans une barre épinglée au-dessus des onglets.
+- **Alternative écartée** : masquer les onglets pendant la révélation et le bilan, comme sur la maquette.
+- **Justification** : la coque n'a pas à connaître l'état du jeu ; `GameScreen` reçoit seulement un rappel `onGoHome`.
+
+### Données d'exemple derrière un provider
+
+- **Décision** : `gameRoundsProvider` et `gameStatsProvider` (`sample_rounds.dart`) fournissent 20 manches et des statistiques d'exemple.
+- **Alternative écartée** : attendre le tirage réel pour construire les écrans.
+- **Justification** : les écrans se valident tout de suite ; l'étape fonctionnelle remplacera ces deux providers par un dépôt, sans toucher aux Widgets.
