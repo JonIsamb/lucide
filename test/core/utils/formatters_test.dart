@@ -26,6 +26,19 @@ void main() {
     expect(plain(formatPercent(-0.04)), '0,0 %');
   });
 
+  test('percentages without direction drop the plus sign', () {
+    expect(plain(formatPercent(13.24, signed: false)), '13,2 %');
+    expect(plain(formatPercent(58.4, decimals: 0, signed: false)), '58 %');
+  });
+
+  test('candle dates and big counts', () {
+    final day = DateTime.utc(2025, 10, 6);
+    expect(formatMonthYear(day), 'oct. 2025');
+    expect(formatDay(day), '6 oct. 2025');
+    expect(plain(formatCompactNumber(41637218)), '41,6 M');
+    expect(plain(formatCompactNumber(950)), '950');
+  });
+
   test('dates', () {
     final now = DateTime(2026, 10, 6);
     expect(
@@ -36,5 +49,26 @@ void main() {
       formatDateTime(DateTime(2025, 12, 1, 9, 5), now: now),
       '1 décembre 2025 à 09:05',
     );
+  });
+
+  test('month ranges', () {
+    expect(formatLongMonthYear(DateTime(2019, 3, 4)), 'mars 2019');
+    expect(
+      formatMonthRange(DateTime(2019, 3, 4), DateTime(2019, 10, 21)),
+      'de mars à octobre 2019',
+    );
+    expect(
+      formatMonthRange(DateTime(2019, 11, 4), DateTime(2020, 6, 1)),
+      'de novembre 2019 à juin 2020',
+    );
+    expect(
+      formatMonthRange(DateTime(2021, 4, 5), DateTime(2021, 10, 25)),
+      "d'avril à octobre 2021",
+    );
+  });
+
+  test('plain decimals', () {
+    expect(formatDecimal(10.34), '10,3');
+    expect(formatDecimal(-2), '−2,0');
   });
 }

@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide/app.dart';
 import 'package:lucide/core/database/app_database.dart';
 import 'package:lucide/core/network/api_exception.dart';
+import 'package:lucide/core/theme/app_theme.dart';
 import 'package:lucide/features/asset_detail/asset_detail_screen.dart';
 import 'package:lucide/features/catalog/data/catalog_repository.dart';
 
@@ -122,8 +124,101 @@ void main() {
     await pumpApp(tester);
 
     await tester.tap(find.text('Apple'));
-    await tester.pumpAndSettle();
+    await settle(tester);
+
     expect(find.byType(AssetDetailScreen), findsOneWidget);
+    expect(find.text('Action, AAPL'), findsOneWidget);
+    expect(find.text('Non éligible PEA'), findsOneWidget);
+    expect(find.text('122,30\u00a0\$'), findsWidgets);
+    expect(find.text('+22,3\u00a0% sur 1 an'), findsOneWidget);
+
+    // The lower cards are built once scrolled into view.
+    final list = find.descendant(
+      of: find.byType(AssetDetailScreen),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      find.text('Baisse maximale'),
+      200,
+      scrollable: list,
+    );
+    expect(find.text('Variation'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Pire semaine'),
+      200,
+      scrollable: list,
+    );
+    expect(find.text('Ce que j’aurais vraiment gagné'), findsOneWidget);
+  });
+
+  testWidgets('detail: period and favorite star', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text('Apple'));
+    await settle(tester);
+
+    await tester.tap(find.text('1 mois'));
+    await tester.pumpAndSettle();
+    expect(find.text('+22,3\u00a0% sur 1 mois'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Ajouter Apple aux favoris'));
+    await settle(tester);
+    expect(await db.favoritesDao.favoriteSymbols(), {'AAPL'});
+
+    // Back in the catalogue, the row shows the same star.
+    await tester.tap(find.byTooltip('Retour au catalogue'));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Retirer Apple des favoris'), findsOneWidget);
+  });
+
+  testWidgets('detail fits a small phone without overflow', (tester) async {
+    // The real font: the test font is much wider and would overflow
+    // where a phone does not.
+    await tester.runAsync(() async {
+      final loader = FontLoader('Nunito');
+      for (final weight in ['Regular', 'SemiBold', 'Bold', 'ExtraBold']) {
+        final bytes = await File('assets/fonts/Nunito-$weight.ttf')
+            .readAsBytes();
+        loader.addFont(Future.value(ByteData.sublistView(bytes)));
+      }
+      await loader.load();
+    });
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    // A long, bumpy series: every card has something to show.
+    final repository = CatalogRepository(
+      database: db,
+      api: api,
+      loadCatalogJson: () async => catalogJson,
+    );
+    api.series['BTC/EUR'] = weeklySeries([
+      for (var i = 0; i < 80; i++) 98000 + 4000.0 * ((i * 7) % 11) - 150 * i,
+    ]);
+    await tester.runAsync(() async {
+      await repository.seedCatalog();
+      await repository.refreshSeries('BTC/EUR');
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [catalogRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const AssetDetailScreen(symbol: 'BTC/EUR'),
+        ),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('Bitcoin'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Semaines observées'),
+      200,
+      scrollable: find.byType(Scrollable),
+    );
+    // An overflow would have been reported as an exception.
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('offline on first launch: error and retry button', (

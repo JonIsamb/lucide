@@ -21,13 +21,18 @@ List<WeeklyCandle> lastYear(List<WeeklyCandle> candles) {
 ///
 /// Returns null when it cannot be computed honestly: fewer than 2 candles,
 /// or a first close of 0 (division by zero).
-double? yearlyChangePercent(List<WeeklyCandle> candles) {
+double? changePercent(List<WeeklyCandle> candles) {
   if (candles.length < 2) return null;
   final first = candles.first.close;
   if (first == 0) return null;
   final last = candles.last.close;
   return (last - first) / first * 100;
 }
+
+/// [changePercent] of the candles of the last year, as the catalogue
+/// rows show it.
+double? yearlyChangePercent(List<WeeklyCandle> candles) =>
+    changePercent(candles);
 
 /// The closes scaled between 0 (lowest) and 1 (highest), for the sparkline.
 ///
