@@ -76,6 +76,9 @@ void main() {
       ),
     );
     await settle(tester);
+    // The app opens on Accueil: these tests are about the catalogue.
+    await tester.tap(find.text('Catalogue'));
+    await settle(tester);
   }
 
   testWidgets('the shell shows the 4 tabs and switches between them', (

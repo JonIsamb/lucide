@@ -52,7 +52,7 @@ class _Initials extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.sand,
+      color: AppColors.lightGreen,
       child: Padding(
         padding: const EdgeInsets.all(4),
         // FittedBox shrinks "GOOGL" so it fits like "V".
