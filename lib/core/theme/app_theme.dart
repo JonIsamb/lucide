@@ -12,7 +12,7 @@ abstract final class AppTheme {
       seedColor: AppColors.primary,
       primary: AppColors.primary,
       onPrimary: Colors.white,
-      secondaryContainer: AppColors.sand,
+      secondaryContainer: AppColors.lightGreen,
       surface: AppColors.surface,
       onSurface: AppColors.ink,
       onSurfaceVariant: AppColors.muted,
@@ -54,7 +54,7 @@ abstract final class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.sand,
+        indicatorColor: AppColors.lightGreen,
         surfaceTintColor: Colors.transparent,
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(

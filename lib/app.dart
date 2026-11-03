@@ -33,8 +33,9 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  // The catalogue is the first useful screen while the others are placeholders.
-  int _index = 1;
+  int _index = 0;
+
+  void _openTab(int index) => setState(() => _index = index);
 
   /// The game draws its rounds from the stored prices when it is built.
   /// Building it only once its tab is opened gives the catalogue time to
@@ -54,18 +55,15 @@ class _HomeShellState extends State<HomeShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          const HomeScreen(),
+          HomeScreen(onOpenTab: _openTab),
           const CatalogScreen(),
           const SimulatorScreen(),
-          if (_gameOpened)
-            GameScreen(onGoHome: () => _select(0))
-          else
-            const SizedBox.shrink(),
+          GameScreen(onGoHome: () => setState(() => _index = 0)),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: _select,
+        onDestinationSelected: _openTab,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
