@@ -16,13 +16,21 @@ Ce fichier alimente le rapport.
 - **Fraîcheur.** Le point devient corail après 3 jours de bourse sans mise à jour, y compris pour les cryptos (règle existante `isStale`) ; la règle de 2 jours calendaires pour les cryptos reste à faire.
 - **État « initial ».** La fiche est toujours ouverte pour un symbole : l'état « aucun symbole sélectionné » n'existe pas sur cet écran.
 
-## Jeu « Teste ton intuition » (étape graphique)
+## Jeu « Teste ton intuition »
 
-- **Courbes fictives.** Les 20 manches viennent de `sample_rounds.dart` : des courbes inventées, générées avec une graine fixe, sous des noms neutres (« Actif exemple 3 »). Le tirage dans les séries hebdomadaires en base n'est pas encore codé.
-- **Statistiques d'exemple.** « Parties jouées », « meilleur score » et « moyenne » sont des valeurs fixes : les parties ne sont pas encore enregistrées.
-- **Mode indice non défini.** Le bouton « Voir un indice » est affiché mais désactivé.
+- **10 manches : test statistique peu sensible.** Avec 10 lancers de pièce, un score de 2 à 8 est compatible avec le hasard (test binomial bilatéral, seuil 5 %) ; seuls 0, 1, 9 et 10 en sortent (2,1 % de chances à eux quatre). Un joueur qui aurait un vrai léger avantage ne serait presque jamais détecté sur une seule partie.
+- **Semaines « consécutives ».** Deux bougies séparées de plus de 10 jours sont considérées comme non consécutives (une semaine manque). Entre 7 et 10 jours, on admet une semaine décalée par un jour férié.
+- **Tirage proportionnel à l'historique.** Chaque fenêtre de 30 semaines a la même chance d'être tirée : un actif avec 5 ans de cours sort plus souvent qu'un actif récent.
+- **Cours non ajustés des dividendes.** Comme sur la fiche : un détachement de dividende pendant les 4 semaines masquées apparaît comme une petite baisse.
+- **Pas de partie à moins de 10 manches.** Si la base contient trop peu de cours (premier lancement hors connexion, aucun seed embarqué pour l'instant), le jeu est indisponible et l'explique.
+- **Contexte limité aux données en base.** À la révélation, le contexte est la description de l'actif (`catalog.json`) et deux variations calculées. L'app n'explique pas pourquoi le cours a bougé : elle n'a aucune source d'actualité.
+- **Statistiques d'exemple.** « Parties jouées », « meilleur score » et « moyenne » sont des valeurs fixes (`sample_stats.dart`) : les parties ne sont pas encore enregistrées.
+- **Indice : données pour Apple seulement.** `assets/earnings.json` contient les 24 annonces de résultats d'Apple (octobre 2020 à juillet 2026), obtenues de Twelve Data. Les 16 autres actions du catalogue demandent le plan Grow : elles ne sont pas dans le fichier, et aucune date n'a été saisie de mémoire. Pour elles, comme pour les ETF et les cryptos, l'indice affiche « Aucune annonce de résultats connue sur ces semaines ».
+- **L'indice peut trahir l'actif.** Tant qu'un seul actif a des annonces, un indice non vide désigne Apple. Avec le fichier complet, il dira seulement « c'est une action ».
+- **Indice sans effet sur le score.** L'indice demandé est mémorisé par manche, mais ni pénalité ni affichage au bilan.
+- **Écart au consensus brut.** « Meilleurs » ou « moins bons que prévu » suit seulement le signe de `surprise_prc` (bénéfice par action publié contre attendu). Aucun seuil : +0,1 % compte comme « meilleurs ».
+- **Annonce après la clôture.** Une annonce publiée après la clôture est rattachée à la semaine de son jour ; si ce jour est le dernier de la semaine affichée, la réaction du cours tombe dans la première semaine masquée.
 - **Référence « toujours hausse » absente.** Le bilan compare le score au hasard seulement.
 - **Cours inchangé compté comme « plus bas ».** Si le cours après 4 semaines est exactement égal au dernier cours visible, la bonne réponse est « plus bas » (le cours n'est pas plus haut).
 - **Échelle horizontale de la zone masquée.** Les 4 semaines masquées occupent plus de largeur par semaine que les 26 semaines visibles, pour rester lisibles. La pente de la suite révélée paraît donc plus douce qu'elle ne l'est.
 - **Échelle verticale.** Pendant la manche, l'échelle ne tient compte que des semaines visibles, pour ne pas trahir la réponse ; elle s'élargit pendant la révélation.
-- **Jeu indisponible.** Sans aucune manche, l'écran affiche un simple message ; l'état « cache vide et seed absent » avec explication reste à faire.

@@ -79,14 +79,12 @@ class _GuessButton extends StatelessWidget {
   }
 }
 
-/// "Voir un indice", with a dashed outline.
-///
-/// Disabled for now: what the hint shows is not defined yet. Pass
-/// [onPressed] once it is.
+/// "Voir un indice", with a dashed outline. The hint itself is shown by
+/// `HintCard`, which replaces this button once pressed.
 class HintButton extends StatelessWidget {
-  const HintButton({super.key, this.onPressed});
+  const HintButton({super.key, required this.onPressed});
 
-  final VoidCallback? onPressed;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {

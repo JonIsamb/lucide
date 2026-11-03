@@ -19,6 +19,7 @@ class GameState {
     required this.rounds,
     this.guesses = const [],
     this.phase = GamePhase.playing,
+    this.hintRounds = const {},
   });
 
   final List<GameRound> rounds;
@@ -26,6 +27,9 @@ class GameState {
   /// One answer per round already played, in order.
   final List<Guess> guesses;
   final GamePhase phase;
+
+  /// Indexes of the rounds where the player asked for the hint.
+  final Set<int> hintRounds;
 
   /// Index of the round on screen. While a round is revealed, its answer
   /// is already in [guesses], hence the "- 1".
@@ -36,6 +40,9 @@ class GameState {
 
   /// The player's answer to the round on screen (null while playing).
   Guess? get guess => phase == GamePhase.playing ? null : guesses.last;
+
+  /// Whether the hint of the round on screen is displayed.
+  bool get hintShown => hintRounds.contains(roundIndex);
 
   bool get isLastRound => roundIndex == rounds.length - 1;
 
@@ -48,11 +55,16 @@ class GameState {
     return count;
   }
 
-  GameState copyWith({List<Guess>? guesses, GamePhase? phase}) {
+  GameState copyWith({
+    List<Guess>? guesses,
+    GamePhase? phase,
+    Set<int>? hintRounds,
+  }) {
     return GameState(
       rounds: rounds,
       guesses: guesses ?? this.guesses,
       phase: phase ?? this.phase,
+      hintRounds: hintRounds ?? this.hintRounds,
     );
   }
 }

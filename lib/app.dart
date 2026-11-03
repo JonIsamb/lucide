@@ -36,6 +36,18 @@ class _HomeShellState extends State<HomeShell> {
   // The catalogue is the first useful screen while the others are placeholders.
   int _index = 1;
 
+  /// The game draws its rounds from the stored prices when it is built.
+  /// Building it only once its tab is opened gives the catalogue time to
+  /// download them on the first launch.
+  bool _gameOpened = false;
+
+  void _select(int index) => setState(() {
+    _index = index;
+    if (index == _gameTab) _gameOpened = true;
+  });
+
+  static const _gameTab = 3;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,12 +57,15 @@ class _HomeShellState extends State<HomeShell> {
           const HomeScreen(),
           const CatalogScreen(),
           const SimulatorScreen(),
-          GameScreen(onGoHome: () => setState(() => _index = 0)),
+          if (_gameOpened)
+            GameScreen(onGoHome: () => _select(0))
+          else
+            const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (index) => setState(() => _index = index),
+        onDestinationSelected: _select,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

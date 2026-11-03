@@ -3,6 +3,9 @@ import 'package:lucide/core/network/market_data_api.dart';
 import 'package:lucide/features/catalog/domain/asset_overview.dart';
 import 'package:lucide/features/catalog/domain/instrument.dart';
 import 'package:lucide/features/catalog/domain/weekly_candle.dart';
+import 'package:lucide/features/game/data/game_repository.dart';
+import 'package:lucide/features/game/domain/game_round.dart';
+import 'package:lucide/features/game/domain/round_draw.dart';
 
 /// A candle where only the date and the close matter.
 WeeklyCandle candle(DateTime date, double close) => WeeklyCandle(
@@ -23,14 +26,32 @@ Instrument instrument(
   String symbol, {
   String? name,
   InstrumentType type = InstrumentType.stock,
+  String description = '',
 }) => Instrument(
   symbol: symbol,
   name: name ?? symbol,
   type: type,
   currency: type == InstrumentType.crypto ? 'EUR' : 'USD',
   peaEligible: false,
-  description: '',
+  description: description,
 );
+
+/// Fake game repository: every game is made of the same prepared rounds.
+class FakeGameRepository implements GameRepository {
+  FakeGameRepository(this.rounds);
+
+  final List<GameRound> rounds;
+  int draws = 0;
+
+  @override
+  Future<List<GameRound>> drawGame() async {
+    draws++;
+    return rounds;
+  }
+
+  @override
+  Future<List<GameSeries>> loadSeries() async => const [];
+}
 
 AssetOverview overview(
   String symbol, {
