@@ -227,3 +227,9 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : dépendance `flutter_localizations` (paquet du SDK Flutter) et `GlobalMaterialLocalizations.delegates` dans `MaterialApp`, locale `fr_FR` seule.
 - **Alternative écartée** : garder les textes anglais du sélecteur ; ou écrire un sélecteur de date maison.
 - **Justification** : sans ces délégués, `showDatePicker` plante en français (« No MaterialLocalizations found »). Le paquet est fourni avec Flutter : rien n'est téléchargé d'un tiers.
+
+### Barre de navigation « liquid glass »
+
+- **Décision** : dépendance `liquid_glass_renderer` (version préliminaire `1.0.0-dev.2`) pour la barre du bas. Flutter GPU activé dans `Info.plist` (iOS, macOS) et `AndroidManifest.xml`. La barre flotte au dessus des pages dans un `Stack` de `HomeShell`, qui réduit d'autant le `MediaQuery.padding` des pages.
+- **Alternative écartée** : `BackdropFilter` + dégradé translucide (sans dépendance, mais sans réfraction) ; `NavigationBar` Material.
+- **Justification** : seul le rendu par shader reproduit la réfraction du verre iOS. Le paquet bascule seul sur un verre dépoli (`FakeGlass`) quand Flutter GPU est indisponible : la barre reste utilisable partout. Limite : paquet en préversion, à valider sur appareil réel avant la soutenance.
