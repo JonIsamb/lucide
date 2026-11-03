@@ -61,6 +61,7 @@ flutter:
 
   assets:
     - assets/catalog.json
+    - assets/earnings.json
 
   # Bundled (not downloaded at runtime) so the app works fully offline.
   fonts:

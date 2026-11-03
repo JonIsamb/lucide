@@ -8,9 +8,11 @@ import '../domain/game_round.dart';
 import '../domain/game_verdict.dart';
 import 'game_controller.dart';
 import 'game_state.dart';
-import 'sample_rounds.dart';
+import 'sample_stats.dart';
+import 'widgets/asset_context_card.dart';
 import 'widgets/game_action_bar.dart';
 import 'widgets/guess_buttons.dart';
+import 'widgets/hint_card.dart';
 import 'widgets/mystery_chart.dart';
 import 'widgets/reveal_banner.dart';
 import 'widgets/round_header.dart';
@@ -27,25 +29,39 @@ class GameScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(gameControllerProvider);
+    final game = ref.watch(gameControllerProvider);
     final controller = ref.read(gameControllerProvider.notifier);
 
-    return SafeArea(
-      bottom: false,
-      child: switch (state.phase) {
-        _ when state.rounds.isEmpty => const _Unavailable(),
-        GamePhase.finished => _SummaryView(
-          state: state,
-          stats: ref.watch(gameStatsProvider),
-          onGoHome: onGoHome,
-          onReplay: controller.restart,
-        ),
-        _ => _RoundView(
-          state: state,
-          onGuess: controller.answer,
-          onNext: controller.nextRound,
-        ),
-      },
+    return SafeArea(bottom: false, child: _body(ref, game, controller));
+  }
+
+  Widget _body(
+    WidgetRef ref,
+    AsyncValue<GameState> game,
+    GameController controller,
+  ) {
+    final state = game.value;
+    if (state == null) {
+      // The rounds are being drawn from the database, or it failed.
+      return game.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _Unavailable(onRetry: controller.restart);
+    }
+    if (state.rounds.isEmpty) return _Unavailable(onRetry: controller.restart);
+
+    if (state.phase == GamePhase.finished) {
+      return _SummaryView(
+        state: state,
+        stats: ref.watch(gameStatsProvider),
+        onGoHome: onGoHome,
+        onReplay: controller.restart,
+      );
+    }
+    return _RoundView(
+      state: state,
+      onGuess: controller.answer,
+      onHint: controller.showHint,
+      onNext: controller.nextRound,
     );
   }
 }
@@ -83,11 +99,13 @@ class _RoundView extends StatelessWidget {
   const _RoundView({
     required this.state,
     required this.onGuess,
+    required this.onHint,
     required this.onNext,
   });
 
   final GameState state;
   final ValueChanged<Guess> onGuess;
+  final VoidCallback onHint;
   final VoidCallback onNext;
 
   @override
@@ -131,7 +149,7 @@ class _RoundView extends StatelessWidget {
           revealed: revealed,
         ),
         const SizedBox(height: 16),
-        if (revealed)
+        if (revealed) ...[
           Text(
             _lesson(round),
             style: const TextStyle(
@@ -140,8 +158,21 @@ class _RoundView extends StatelessWidget {
               height: 1.45,
               color: AppColors.ink,
             ),
-          )
-        else ...[
+          ),
+          const SizedBox(height: 16),
+          AssetContextCard(
+            asset: round.asset,
+            visibleWeeks: round.history.length,
+            visibleChangePercent: historyChangePercent(round),
+            hiddenWeeks: round.future.length,
+            hiddenChangePercent: change,
+            onOpenDetail: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => AssetDetailScreen(symbol: round.asset.symbol),
+              ),
+            ),
+          ),
+        ] else ...[
           Semantics(
             header: true,
             child: Text(
@@ -159,7 +190,10 @@ class _RoundView extends StatelessWidget {
           const SizedBox(height: 14),
           GuessButtons(onGuess: onGuess),
           const SizedBox(height: 14),
-          const HintButton(),
+          if (state.hintShown)
+            HintCard(hints: round.hints)
+          else
+            HintButton(onPressed: onHint),
         ],
       ],
     );
@@ -202,7 +236,7 @@ class _ChartCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: revealed
                 ? Text(
-                    'C\'était ${round.assetName}, '
+                    'C\'était ${round.asset.name}, '
                     '${formatMonthRange(round.start, round.end)}',
                     style: const TextStyle(
                       fontSize: 16,
@@ -248,6 +282,7 @@ class _SummaryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final roundCount = state.rounds.length;
+    final verdict = chanceVerdict(state.score, rounds: roundCount);
 
     return _GameLayout(
       actionBar: GameActionBar(
@@ -260,7 +295,7 @@ class _SummaryView extends StatelessWidget {
         ScoreCard(score: state.score, roundCount: roundCount),
         const SizedBox(height: 16),
         Text(
-          _explanation(chanceVerdict(state.score)),
+          _explanation(verdict, chanceBounds(roundCount)),
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -282,34 +317,65 @@ class _SummaryView extends StatelessWidget {
     );
   }
 
-  String _explanation(ChanceVerdict verdict) => switch (verdict) {
+  String _explanation(
+    ChanceVerdict verdict,
+    ({int lower, int upper}) bounds,
+  ) => switch (verdict) {
     ChanceVerdict.withinChance =>
-      'Entre $chanceLowerBound et $chanceUpperBound bonnes réponses, le '
+      'Entre ${bounds.lower} et ${bounds.upper} bonnes réponses, le '
           'hasard suffit à expliquer ton score. Sur 4 semaines, personne ne '
           'prédit une courbe, ni toi ni les professionnels.',
     ChanceVerdict.aboveChance =>
-      'Plus de $chanceUpperBound bonnes réponses : c\'est rare avec le seul '
+      'Plus de ${bounds.upper} bonnes réponses : c\'est rare avec le seul '
           'hasard. Rejoue pour voir si cela se reproduit.',
     ChanceVerdict.belowChance =>
-      'Moins de $chanceLowerBound bonnes réponses : c\'est rare avec le '
+      'Moins de ${bounds.lower} bonnes réponses : c\'est rare avec le '
           'seul hasard, dans l\'autre sens. Rejoue pour voir si cela se '
           'reproduit.',
   };
 }
 
-/// Shown when there is no round to play.
+/// Shown when the stored prices cannot give a full game (first launch
+/// without network, or prices still downloading).
 class _Unavailable extends StatelessWidget {
-  const _Unavailable();
+  const _Unavailable({required this.onRetry});
+
+  /// Draws the rounds again.
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text(
-          'Le jeu n\'est pas disponible pour l\'instant.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: AppColors.muted),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Le jeu n\'est pas disponible pour l\'instant.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: AppColors.ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Les courbes du jeu sont de vrais cours, enregistrés sur le '
+              'téléphone. Ouvre le catalogue avec une connexion pour les '
+              'télécharger, puis réessaie.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                height: 1.45,
+                color: AppColors.muted,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onRetry, child: const Text('Réessayer')),
+          ],
         ),
       ),
     );

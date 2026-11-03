@@ -3,21 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide/core/theme/app_theme.dart';
+import 'package:lucide/features/game/data/game_repository.dart';
+import 'package:lucide/features/game/domain/earnings_hint.dart';
 import 'package:lucide/features/game/domain/game_round.dart';
 import 'package:lucide/features/game/presentation/game_screen.dart';
-import 'package:lucide/features/game/presentation/sample_rounds.dart';
+
+import '../../../helpers.dart';
 
 /// 26 visible weeks going from 100 to 106, then 4 hidden weeks ending
 /// 6,2 % lower (the example of the mockup) or 5 % higher.
-GameRound round({required bool rises}) {
+GameRound round({required bool rises, List<EarningsHint> hints = const []}) {
   final history = [for (var i = 0; i < 26; i++) 100 + i * 6 / 25];
   final last = rises ? 106 * 1.05 : 106 * (1 - 0.062);
   return GameRound(
-    assetName: 'Coca-Cola',
+    asset: instrument(
+      'KO',
+      name: 'Coca-Cola',
+      description: 'Le fabricant de sodas le plus connu au monde.',
+    ),
     history: history,
     future: [106, 105, 104, last],
     start: DateTime.utc(2019, 3, 4),
     end: DateTime.utc(2019, 10, 21),
+    hints: hints,
   );
 }
 
@@ -47,13 +55,17 @@ void main() {
     }
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [gameRoundsProvider.overrideWithValue(rounds)],
+        overrides: [
+          gameRepositoryProvider.overrideWithValue(FakeGameRepository(rounds)),
+        ],
         child: MaterialApp(
           theme: AppTheme.light(),
           home: Scaffold(body: GameScreen(onGoHome: () => wentHome = true)),
         ),
       ),
     );
+    // The rounds arrive one frame later: they are drawn asynchronously.
+    await tester.pumpAndSettle();
   }
 
   testWidgets('a round shows the question, both answers and no asset name', (
@@ -75,13 +87,57 @@ void main() {
     expect(find.textContaining('Coca-Cola'), findsNothing);
   });
 
-  testWidgets('the hint button is shown but disabled', (tester) async {
+  testWidgets('the hint lists the announcements of the visible weeks', (
+    tester,
+  ) async {
+    await pumpGame(tester, [
+      round(
+        rises: false,
+        hints: const [
+          EarningsHint(weeksAgo: 14, surprisePercent: -3.09),
+          EarningsHint(weeksAgo: 1, surprisePercent: 6.3),
+          EarningsHint(weeksAgo: 0, surprisePercent: 0),
+        ],
+      ),
+    ]);
+    expect(find.textContaining('Indice :'), findsNothing);
+
+    await tester.tap(find.text('Voir un indice'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Voir un indice'), findsNothing);
+    expect(find.text('Indice : les annonces de résultats'), findsOneWidget);
+    expect(
+      findPlainText(
+        'Il y a 14 semaines : résultats moins bons que prévu (−3,1 %).',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      findPlainText(
+        'Il y a 1 semaine : résultats meilleurs que prévu (+6,3 %).',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Cette semaine : résultats conformes aux attentes.'),
+      findsOneWidget,
+    );
+    // The hint never names the asset.
+    expect(find.textContaining('Coca-Cola'), findsNothing);
+    expect(find.text('Plus haut'), findsOneWidget);
+  });
+
+  testWidgets('the hint says so when no announcement is known', (tester) async {
     await pumpGame(tester, [round(rises: false)]);
 
-    final button = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, 'Voir un indice'),
+    await tester.tap(find.text('Voir un indice'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Aucune annonce de résultats connue sur ces semaines.'),
+      findsOneWidget,
     );
-    expect(button.onPressed, isNull);
   });
 
   testWidgets('a wrong answer reveals the asset, the period and the loss', (
@@ -102,6 +158,26 @@ void main() {
     expect(find.textContaining('La courbe montait depuis 6 mois'), findsOne);
     expect(find.text('Plus haut'), findsNothing);
     expect(find.text('Manche suivante'), findsOneWidget);
+  });
+
+  testWidgets('the reveal gives the context of the real asset', (tester) async {
+    await pumpGame(tester, [round(rises: false), round(rises: true)]);
+    expect(find.textContaining('fabricant de sodas'), findsNothing);
+
+    await tester.tap(find.text('Plus bas'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Action, KO'), findsOneWidget);
+    expect(find.text('Coca-Cola'), findsOneWidget);
+    expect(
+      find.text('Le fabricant de sodas le plus connu au monde.'),
+      findsOneWidget,
+    );
+    expect(find.text('Les 26 semaines affichées'), findsOneWidget);
+    expect(findPlainText('+6,0 %'), findsOneWidget);
+    expect(find.text('Les 4 semaines suivantes'), findsOneWidget);
+    expect(findPlainText('−6,2 %'), findsOneWidget);
+    expect(find.text('Voir la fiche de cet actif'), findsOneWidget);
   });
 
   testWidgets('a full game ends on the score, then can be replayed', (
@@ -143,6 +219,11 @@ void main() {
     await pumpGame(tester, [round(rises: false)], size: const Size(320, 568));
     expect(tester.takeException(), isNull);
 
+    await tester.ensureVisible(find.text('Voir un indice'));
+    await tester.tap(find.text('Voir un indice'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
     // The answers are below the fold on such a small screen.
     await tester.ensureVisible(find.text('Plus haut'));
     await tester.tap(find.text('Plus haut'));
@@ -163,5 +244,7 @@ void main() {
       find.text("Le jeu n'est pas disponible pour l'instant."),
       findsOneWidget,
     );
+    expect(find.textContaining('Ouvre le catalogue'), findsOneWidget);
+    expect(find.text('Réessayer'), findsOneWidget);
   });
 }

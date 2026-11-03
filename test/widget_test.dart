@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -12,6 +13,7 @@ import 'package:lucide/core/network/api_exception.dart';
 import 'package:lucide/core/theme/app_theme.dart';
 import 'package:lucide/features/asset_detail/asset_detail_screen.dart';
 import 'package:lucide/features/catalog/data/catalog_repository.dart';
+import 'package:lucide/features/game/data/game_repository.dart';
 
 import 'helpers.dart';
 
@@ -34,10 +36,12 @@ void main() {
   // Read from disk: rootBundle caches its first future, and reusing it in
   // a later widget test (another fake clock) never completes.
   late String catalogJson;
+  late String earningsJson;
 
   setUpAll(() async {
     await initializeDateFormatting('fr_FR');
     catalogJson = await File('assets/catalog.json').readAsString();
+    earningsJson = await File('assets/earnings.json').readAsString();
   });
 
   setUp(() {
@@ -52,14 +56,19 @@ void main() {
   /// The whole app, with the real catalog.json, an in-memory database and
   /// a fake API (no network, no rate limiter).
   Future<void> pumpApp(WidgetTester tester) async {
+    final catalog = CatalogRepository(
+      database: db,
+      api: api,
+      loadCatalogJson: () async => catalogJson,
+    );
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          catalogRepositoryProvider.overrideWithValue(
-            CatalogRepository(
-              database: db,
-              api: api,
-              loadCatalogJson: () async => catalogJson,
+          catalogRepositoryProvider.overrideWithValue(catalog),
+          gameRepositoryProvider.overrideWithValue(
+            GameRepository(
+              catalog: catalog,
+              loadEarningsJson: () async => earningsJson,
             ),
           ),
         ],
@@ -72,14 +81,39 @@ void main() {
   testWidgets('the shell shows the 4 tabs and switches between them', (
     tester,
   ) async {
+    // 40 weeks for every asset: enough for one round each, so for a game.
+    final catalog = jsonDecode(catalogJson) as List<dynamic>;
+    for (final asset in catalog) {
+      api.series[(asset as Map<String, dynamic>)['symbol'] as String] =
+          weeklySeries([for (var i = 0; i < 40; i++) 100.0 + i]);
+    }
     await pumpApp(tester);
 
     expect(find.text('Accueil'), findsOneWidget);
     expect(find.text('Simulations'), findsOneWidget);
 
     await tester.tap(find.text('Jeu'));
+    await settle(tester);
+    expect(find.text('Manche 1 sur 10'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Voir un indice'));
+    await tester.tap(find.text('Voir un indice'));
     await tester.pumpAndSettle();
-    expect(find.text('Manche 1 sur 20'), findsOneWidget);
+    expect(find.text('Indice : les annonces de résultats'), findsOneWidget);
+  });
+
+  testWidgets('the game explains itself when too few prices are stored', (
+    tester,
+  ) async {
+    // Only two weeks of AAPL and INTC: no window of 30 weeks.
+    await pumpApp(tester);
+
+    await tester.tap(find.text('Jeu'));
+    await settle(tester);
+    expect(
+      find.text("Le jeu n'est pas disponible pour l'instant."),
+      findsOneWidget,
+    );
   });
 
   testWidgets('catalogue shows prices and changes in French', (tester) async {

@@ -124,6 +124,23 @@ class CatalogRepository {
     );
   }
 
+  /// Every asset with its whole stored history, for the game, which cuts
+  /// its rounds out of them. No network.
+  Future<List<AssetDetail>> loadAllDetails() async {
+    final instruments = await _database.instrumentsDao.allInstruments();
+    final details = <AssetDetail>[];
+    for (final row in instruments) {
+      final candles = await _database.candlesDao.allCandles(row.symbol);
+      details.add(
+        AssetDetail(
+          instrument: _toInstrument(row),
+          candles: candles.map(_toCandle).toList(),
+        ),
+      );
+    }
+    return details;
+  }
+
   Future<void> setFavorite(String symbol, bool isFavorite) {
     return _database.favoritesDao.setFavorite(symbol, isFavorite);
   }

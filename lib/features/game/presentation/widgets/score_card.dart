@@ -64,7 +64,7 @@ class ScoreCard extends StatelessWidget {
           Semantics(
             header: true,
             child: Text(
-              _title(chanceVerdict(score)),
+              _title(chanceVerdict(score, rounds: roundCount)),
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
@@ -90,8 +90,9 @@ class ScoreCard extends StatelessWidget {
   };
 }
 
-/// A 0-to-20 track, a lighter band for the scores chance explains
-/// (6 to 14), and a white dot at the player's score.
+/// A track from 0 to the number of rounds, a lighter band for the scores
+/// chance explains (2 to 8 on 10 rounds), and a white dot at the player's
+/// score.
 class _ChanceGauge extends StatelessWidget {
   const _ChanceGauge({required this.score, required this.roundCount});
 
@@ -111,6 +112,7 @@ class _ChanceGauge extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
+        final bounds = chanceBounds(roundCount);
         // Position of a score on the track, in pixels from the left.
         double at(int value) => width * value / roundCount;
         const trackTop = (_dotSize - _trackHeight) / 2;
@@ -135,14 +137,14 @@ class _ChanceGauge extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    left: at(chanceLowerBound),
-                    width: at(chanceUpperBound) - at(chanceLowerBound),
+                    left: at(bounds.lower),
+                    width: at(bounds.upper) - at(bounds.lower),
                     top: trackTop,
                     height: _trackHeight,
                     child: const ColoredBox(color: AppColors.sand),
                   ),
                   Positioned(
-                    // Kept inside the track at 0 and at 20.
+                    // Kept inside the track at both ends.
                     left: (at(score) - _dotSize / 2).clamp(
                       0.0,
                       width - _dotSize,
@@ -170,7 +172,7 @@ class _ChanceGauge extends StatelessWidget {
                     left: 0,
                     child: Text('0', style: _labelStyle),
                   ),
-                  _centered(at(chanceLowerBound), '$chanceLowerBound'),
+                  _centered(at(bounds.lower), '${bounds.lower}'),
                   Positioned.fill(
                     child: Center(
                       child: Text(
@@ -179,7 +181,7 @@ class _ChanceGauge extends StatelessWidget {
                       ),
                     ),
                   ),
-                  _centered(at(chanceUpperBound), '$chanceUpperBound'),
+                  _centered(at(bounds.upper), '${bounds.upper}'),
                   Positioned(
                     right: 0,
                     child: Text('$roundCount', style: _labelStyle),

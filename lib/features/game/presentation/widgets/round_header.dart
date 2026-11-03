@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
-/// "Manche 7 sur 20", the running score and one small bar per round.
+/// "Manche 7 sur 10", the running score and one small bar per round.
 class RoundHeader extends StatelessWidget {
   const RoundHeader({
     super.key,
