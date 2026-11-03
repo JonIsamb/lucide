@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/catalog/presentation/catalog_screen.dart';
@@ -16,6 +17,9 @@ class LucideApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       locale: const Locale('fr', 'FR'),
+      // French labels for the date picker and other Material widgets.
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      supportedLocales: const [Locale('fr', 'FR')],
       home: const HomeShell(),
     );
   }
@@ -41,11 +45,16 @@ class _HomeShellState extends State<HomeShell> {
   /// download them on the first launch.
   bool _gameOpened = false;
 
+  /// Same for the simulator: it reads the database when it is built.
+  bool _simulatorOpened = false;
+
   void _select(int index) => setState(() {
     _index = index;
     if (index == _gameTab) _gameOpened = true;
+    if (index == _simulatorTab) _simulatorOpened = true;
   });
 
+  static const _simulatorTab = 2;
   static const _gameTab = 3;
 
   @override
@@ -56,7 +65,10 @@ class _HomeShellState extends State<HomeShell> {
         children: [
           const HomeScreen(),
           const CatalogScreen(),
-          const SimulatorScreen(),
+          if (_simulatorOpened)
+            const SimulatorScreen()
+          else
+            const SizedBox.shrink(),
           if (_gameOpened)
             GameScreen(onGoHome: () => _select(0))
           else

@@ -165,3 +165,65 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : `GameState.hintRounds` garde les manches où l'indice a été demandé ; `GameController.showHint()` n'agit qu'avant la réponse. Le score n'est pas modifié.
 - **Alternative écartée** : un booléen dans le Widget ; ou une pénalité de score.
 - **Justification** : l'état métier reste hors des Widgets et se teste sans interface. Aucune règle de pénalité n'est définie dans la consigne : en inventer une fausserait la comparaison avec la pièce.
+
+## Simulation « Ce que j'aurais vraiment gagné »
+
+### Cascade en cinq étapes, barres = écarts de performances cumulées
+
+- **Décision** : `runSimulation` (`domain/run_simulation.dart`) calcule cinq performances cumulées en fraction du montant investi : brute (prix de vente / prix d'achat − 1), en euros, après frais, après impôt, réelle (Fisher). Chaque barre est l'écart entre deux performances successives ; la somme des barres plus la performance brute égale le résultat par construction (test dédié).
+- **Alternative écartée** : calculer chaque barre isolément (impact du change seul, des frais seuls…).
+- **Justification** : des effets calculés séparément ne s'additionnent pas (l'impôt dépend des frais, l'inflation de l'impôt). L'ordre fixe rend la décomposition unique et le graphique honnête.
+
+### Résultat et erreurs sans exception
+
+- **Décision** : `runSimulation` renvoie un `SimulationOutcome` (résultat ou `SimulationError`) ; chaque erreur porte son message français, affiché tel quel sous le formulaire.
+- **Alternative écartée** : lever des exceptions de validation.
+- **Justification** : un formulaire invalide est un cas normal, pas une exception. Le Notifier n'a pas de `try/catch` et le domaine reste pur.
+
+### Règles fiscales en constantes, une par taux
+
+- **Décision** : `domain/fiscal_rules_2026.dart` contient 31,4 %, 18,6 %, 31,4 % (PEA moins de 5 ans) et le seuil de 305 €. PEA de 5 ans exactement : taux réduit (la date de vente doit être au moins cinq ans après l'achat). Seuil crypto : la cession brute (avant frais) compte, 305 € est exonéré, 306 € est taxé.
+- **Alternative écartée** : taux saisis dans l'interface.
+- **Justification** : un taux est une règle, pas une donnée utilisateur. Une constante datée se corrige en un endroit et se cite dans le rapport. Les valeurs viennent du cahier des charges, non revérifiées sur le site de l'administration (noté dans le fichier).
+
+### Données de change et d'inflation : seed embarqué, réseau en complément
+
+- **Décision** : `assets/seed/fx_eur_usd.json` (Frankfurter, 2019-12-31 à 2026-11-02) et `assets/seed/inflation_fra.json` (Banque mondiale, `FP.CPI.TOTL.ZG`, 2015 à 2025) sont copiés en base au premier usage si les tables sont vides. Le réseau complète ensuite en arrière-plan ; un échec est ignoré et les données stockées restent utilisées.
+- **Alternative écartée** : exiger le réseau au premier calcul.
+- **Justification** : la démonstration hors connexion doit fonctionner dès le premier lancement. Les deux sources sont publiques, sans clé ni quota à gérer ; les fichiers ont été téléchargés tels quels, aucun chiffre n'est saisi à la main.
+
+### Tables `fx_rates`, `inflation_rates`, `simulations` (schéma v2)
+
+- **Décision** : trois tables ajoutées avec une migration `onUpgrade` (`from < 2`). `fx_rates` et `inflation_rates` ont chacune un DAO (données réseau) ; `simulations` a le sien (données utilisateur), donc la purge du cache ne touche jamais les simulations sauvegardées. Une simulation stocke ses paramètres et son résultat en JSON.
+- **Alternative écartée** : colonnes séparées pour chaque paramètre et chaque résultat ; colonne `is_estimate` dans `inflation`.
+- **Justification** : une simulation relue n'est jamais recalculée, donc un instantané JSON suffit et supporte l'ajout de champs. « Estimé » dépend de la période choisie, pas de l'année : c'est calculé à chaque simulation et figé dans son résultat.
+
+### Animation : un seul contrôleur, des tranches de temps
+
+- **Décision** : `ResultView` possède un `AnimationController` (créé dans `initState`, libéré dans `dispose`). `cascade_progress.dart` découpe 0 à 1 en cinq `Interval` : gain annoncé, puis change, frais, impôt, inflation. Le compteur géant, les montants en euros, les lignes d'étapes et le `CustomPainter` en cascade lisent tous le même `t`, donc restent synchronisés.
+- **Alternative écartée** : un contrôleur par chiffre ; `TweenAnimationBuilder` par widget.
+- **Justification** : la fonction `runningPerformance` est pure et testée (0 au début, résultat réel à la fin) ; la cascade et les chiffres ne peuvent pas se désynchroniser.
+
+### Passer l'animation
+
+- **Décision** : le bouton « Passer l'animation » et un appui sur le graphique placent le contrôleur sur 1 (valeurs finales). Une fois terminée, « Rejouer l'animation » apparaît. L'animation est sautée d'emblée quand le système demande de réduire les animations et pour une simulation sauvegardée relue.
+- **Alternative écartée** : réglage global mémorisé « toujours passer ».
+- **Justification** : le besoin est de ne pas attendre, pas de configurer. Le bouton est dans la carte qui anime les chiffres, là où le geste est naturel.
+
+### Onglet construit à sa première ouverture
+
+- **Décision** : `HomeShell` ne construit `SimulatorScreen` qu'à l'ouverture de l'onglet, comme pour le jeu.
+- **Alternative écartée** : le construire au démarrage.
+- **Justification** : l'écran lit la base à sa construction ; au démarrage, rien n'impose ce travail, et les tests de la coque n'ouvrent plus de vraie base.
+
+### Refus du PEA
+
+- **Décision** : le PEA est refusé avec une explication quand `pea_eligible` est faux, déjà dans le formulaire (message immédiat) puis à la validation.
+- **Alternative écartée** : masquer l'option PEA.
+- **Justification** : l'explication fait partie de ce que le jeu enseigne. Aucun des 30 actifs du catalogue n'est marqué éligible : le PEA est donc toujours refusé aujourd'hui (voir `limitations.md`).
+
+### `flutter_localizations` pour le sélecteur de date
+
+- **Décision** : dépendance `flutter_localizations` (paquet du SDK Flutter) et `GlobalMaterialLocalizations.delegates` dans `MaterialApp`, locale `fr_FR` seule.
+- **Alternative écartée** : garder les textes anglais du sélecteur ; ou écrire un sélecteur de date maison.
+- **Justification** : sans ces délégués, `showDatePicker` plante en français (« No MaterialLocalizations found »). Le paquet est fourni avec Flutter : rien n'est téléchargé d'un tiers.

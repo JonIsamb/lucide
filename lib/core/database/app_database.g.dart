@@ -51,6 +51,45 @@ class CacheMetaDaoManager {
       $$CacheMetaTableTableManager(_db.attachedDatabase, _db.cacheMeta);
 }
 
+mixin _$FxRatesDaoMixin on DatabaseAccessor<AppDatabase> {
+  $FxRatesTable get fxRates => attachedDatabase.fxRates;
+  FxRatesDaoManager get managers => FxRatesDaoManager(this);
+}
+
+class FxRatesDaoManager {
+  final _$FxRatesDaoMixin _db;
+  FxRatesDaoManager(this._db);
+  $$FxRatesTableTableManager get fxRates =>
+      $$FxRatesTableTableManager(_db.attachedDatabase, _db.fxRates);
+}
+
+mixin _$InflationDaoMixin on DatabaseAccessor<AppDatabase> {
+  $InflationRatesTable get inflationRates => attachedDatabase.inflationRates;
+  InflationDaoManager get managers => InflationDaoManager(this);
+}
+
+class InflationDaoManager {
+  final _$InflationDaoMixin _db;
+  InflationDaoManager(this._db);
+  $$InflationRatesTableTableManager get inflationRates =>
+      $$InflationRatesTableTableManager(
+        _db.attachedDatabase,
+        _db.inflationRates,
+      );
+}
+
+mixin _$SimulationsDaoMixin on DatabaseAccessor<AppDatabase> {
+  $SimulationsTable get simulations => attachedDatabase.simulations;
+  SimulationsDaoManager get managers => SimulationsDaoManager(this);
+}
+
+class SimulationsDaoManager {
+  final _$SimulationsDaoMixin _db;
+  SimulationsDaoManager(this._db);
+  $$SimulationsTableTableManager get simulations =>
+      $$SimulationsTableTableManager(_db.attachedDatabase, _db.simulations);
+}
+
 class $InstrumentsTable extends Instruments
     with TableInfo<$InstrumentsTable, InstrumentRow> {
   @override
@@ -1518,6 +1557,806 @@ class CacheMetaCompanion extends UpdateCompanion<CacheMetaRow> {
   }
 }
 
+class $FxRatesTable extends FxRates with TableInfo<$FxRatesTable, FxRateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FxRatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dayMeta = const VerificationMeta('day');
+  @override
+  late final GeneratedColumn<String> day = GeneratedColumn<String>(
+    'day',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _eurUsdMeta = const VerificationMeta('eurUsd');
+  @override
+  late final GeneratedColumn<double> eurUsd = GeneratedColumn<double>(
+    'eur_usd',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [day, eurUsd];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'fx_rates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FxRateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('day')) {
+      context.handle(
+        _dayMeta,
+        day.isAcceptableOrUnknown(data['day']!, _dayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayMeta);
+    }
+    if (data.containsKey('eur_usd')) {
+      context.handle(
+        _eurUsdMeta,
+        eurUsd.isAcceptableOrUnknown(data['eur_usd']!, _eurUsdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eurUsdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {day};
+  @override
+  FxRateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FxRateRow(
+      day: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}day'],
+      )!,
+      eurUsd: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}eur_usd'],
+      )!,
+    );
+  }
+
+  @override
+  $FxRatesTable createAlias(String alias) {
+    return $FxRatesTable(attachedDatabase, alias);
+  }
+}
+
+class FxRateRow extends DataClass implements Insertable<FxRateRow> {
+  final String day;
+  final double eurUsd;
+  const FxRateRow({required this.day, required this.eurUsd});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['day'] = Variable<String>(day);
+    map['eur_usd'] = Variable<double>(eurUsd);
+    return map;
+  }
+
+  FxRatesCompanion toCompanion(bool nullToAbsent) {
+    return FxRatesCompanion(day: Value(day), eurUsd: Value(eurUsd));
+  }
+
+  factory FxRateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FxRateRow(
+      day: serializer.fromJson<String>(json['day']),
+      eurUsd: serializer.fromJson<double>(json['eurUsd']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'day': serializer.toJson<String>(day),
+      'eurUsd': serializer.toJson<double>(eurUsd),
+    };
+  }
+
+  FxRateRow copyWith({String? day, double? eurUsd}) =>
+      FxRateRow(day: day ?? this.day, eurUsd: eurUsd ?? this.eurUsd);
+  FxRateRow copyWithCompanion(FxRatesCompanion data) {
+    return FxRateRow(
+      day: data.day.present ? data.day.value : this.day,
+      eurUsd: data.eurUsd.present ? data.eurUsd.value : this.eurUsd,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FxRateRow(')
+          ..write('day: $day, ')
+          ..write('eurUsd: $eurUsd')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(day, eurUsd);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FxRateRow &&
+          other.day == this.day &&
+          other.eurUsd == this.eurUsd);
+}
+
+class FxRatesCompanion extends UpdateCompanion<FxRateRow> {
+  final Value<String> day;
+  final Value<double> eurUsd;
+  final Value<int> rowid;
+  const FxRatesCompanion({
+    this.day = const Value.absent(),
+    this.eurUsd = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FxRatesCompanion.insert({
+    required String day,
+    required double eurUsd,
+    this.rowid = const Value.absent(),
+  }) : day = Value(day),
+       eurUsd = Value(eurUsd);
+  static Insertable<FxRateRow> custom({
+    Expression<String>? day,
+    Expression<double>? eurUsd,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (day != null) 'day': day,
+      if (eurUsd != null) 'eur_usd': eurUsd,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FxRatesCompanion copyWith({
+    Value<String>? day,
+    Value<double>? eurUsd,
+    Value<int>? rowid,
+  }) {
+    return FxRatesCompanion(
+      day: day ?? this.day,
+      eurUsd: eurUsd ?? this.eurUsd,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (day.present) {
+      map['day'] = Variable<String>(day.value);
+    }
+    if (eurUsd.present) {
+      map['eur_usd'] = Variable<double>(eurUsd.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FxRatesCompanion(')
+          ..write('day: $day, ')
+          ..write('eurUsd: $eurUsd, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $InflationRatesTable extends InflationRates
+    with TableInfo<$InflationRatesTable, InflationRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $InflationRatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+    'year',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rateMeta = const VerificationMeta('rate');
+  @override
+  late final GeneratedColumn<double> rate = GeneratedColumn<double>(
+    'rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [year, rate];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'inflation_rates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<InflationRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('year')) {
+      context.handle(
+        _yearMeta,
+        year.isAcceptableOrUnknown(data['year']!, _yearMeta),
+      );
+    }
+    if (data.containsKey('rate')) {
+      context.handle(
+        _rateMeta,
+        rate.isAcceptableOrUnknown(data['rate']!, _rateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rateMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {year};
+  @override
+  InflationRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return InflationRow(
+      year: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}year'],
+      )!,
+      rate: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rate'],
+      )!,
+    );
+  }
+
+  @override
+  $InflationRatesTable createAlias(String alias) {
+    return $InflationRatesTable(attachedDatabase, alias);
+  }
+}
+
+class InflationRow extends DataClass implements Insertable<InflationRow> {
+  final int year;
+  final double rate;
+  const InflationRow({required this.year, required this.rate});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['year'] = Variable<int>(year);
+    map['rate'] = Variable<double>(rate);
+    return map;
+  }
+
+  InflationRatesCompanion toCompanion(bool nullToAbsent) {
+    return InflationRatesCompanion(year: Value(year), rate: Value(rate));
+  }
+
+  factory InflationRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return InflationRow(
+      year: serializer.fromJson<int>(json['year']),
+      rate: serializer.fromJson<double>(json['rate']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'year': serializer.toJson<int>(year),
+      'rate': serializer.toJson<double>(rate),
+    };
+  }
+
+  InflationRow copyWith({int? year, double? rate}) =>
+      InflationRow(year: year ?? this.year, rate: rate ?? this.rate);
+  InflationRow copyWithCompanion(InflationRatesCompanion data) {
+    return InflationRow(
+      year: data.year.present ? data.year.value : this.year,
+      rate: data.rate.present ? data.rate.value : this.rate,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InflationRow(')
+          ..write('year: $year, ')
+          ..write('rate: $rate')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(year, rate);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InflationRow &&
+          other.year == this.year &&
+          other.rate == this.rate);
+}
+
+class InflationRatesCompanion extends UpdateCompanion<InflationRow> {
+  final Value<int> year;
+  final Value<double> rate;
+  const InflationRatesCompanion({
+    this.year = const Value.absent(),
+    this.rate = const Value.absent(),
+  });
+  InflationRatesCompanion.insert({
+    this.year = const Value.absent(),
+    required double rate,
+  }) : rate = Value(rate);
+  static Insertable<InflationRow> custom({
+    Expression<int>? year,
+    Expression<double>? rate,
+  }) {
+    return RawValuesInsertable({
+      if (year != null) 'year': year,
+      if (rate != null) 'rate': rate,
+    });
+  }
+
+  InflationRatesCompanion copyWith({Value<int>? year, Value<double>? rate}) {
+    return InflationRatesCompanion(
+      year: year ?? this.year,
+      rate: rate ?? this.rate,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (rate.present) {
+      map['rate'] = Variable<double>(rate.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InflationRatesCompanion(')
+          ..write('year: $year, ')
+          ..write('rate: $rate')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SimulationsTable extends Simulations
+    with TableInfo<$SimulationsTable, SimulationRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SimulationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _symbolMeta = const VerificationMeta('symbol');
+  @override
+  late final GeneratedColumn<String> symbol = GeneratedColumn<String>(
+    'symbol',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _assetNameMeta = const VerificationMeta(
+    'assetName',
+  );
+  @override
+  late final GeneratedColumn<String> assetName = GeneratedColumn<String>(
+    'asset_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paramsJsonMeta = const VerificationMeta(
+    'paramsJson',
+  );
+  @override
+  late final GeneratedColumn<String> paramsJson = GeneratedColumn<String>(
+    'params_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _resultJsonMeta = const VerificationMeta(
+    'resultJson',
+  );
+  @override
+  late final GeneratedColumn<String> resultJson = GeneratedColumn<String>(
+    'result_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    symbol,
+    assetName,
+    paramsJson,
+    resultJson,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'simulations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SimulationRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('symbol')) {
+      context.handle(
+        _symbolMeta,
+        symbol.isAcceptableOrUnknown(data['symbol']!, _symbolMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_symbolMeta);
+    }
+    if (data.containsKey('asset_name')) {
+      context.handle(
+        _assetNameMeta,
+        assetName.isAcceptableOrUnknown(data['asset_name']!, _assetNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_assetNameMeta);
+    }
+    if (data.containsKey('params_json')) {
+      context.handle(
+        _paramsJsonMeta,
+        paramsJson.isAcceptableOrUnknown(data['params_json']!, _paramsJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_paramsJsonMeta);
+    }
+    if (data.containsKey('result_json')) {
+      context.handle(
+        _resultJsonMeta,
+        resultJson.isAcceptableOrUnknown(data['result_json']!, _resultJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_resultJsonMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SimulationRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SimulationRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      symbol: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}symbol'],
+      )!,
+      assetName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}asset_name'],
+      )!,
+      paramsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}params_json'],
+      )!,
+      resultJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}result_json'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SimulationsTable createAlias(String alias) {
+    return $SimulationsTable(attachedDatabase, alias);
+  }
+}
+
+class SimulationRow extends DataClass implements Insertable<SimulationRow> {
+  final int id;
+  final String symbol;
+  final String assetName;
+  final String paramsJson;
+  final String resultJson;
+  final DateTime createdAt;
+  const SimulationRow({
+    required this.id,
+    required this.symbol,
+    required this.assetName,
+    required this.paramsJson,
+    required this.resultJson,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['symbol'] = Variable<String>(symbol);
+    map['asset_name'] = Variable<String>(assetName);
+    map['params_json'] = Variable<String>(paramsJson);
+    map['result_json'] = Variable<String>(resultJson);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  SimulationsCompanion toCompanion(bool nullToAbsent) {
+    return SimulationsCompanion(
+      id: Value(id),
+      symbol: Value(symbol),
+      assetName: Value(assetName),
+      paramsJson: Value(paramsJson),
+      resultJson: Value(resultJson),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory SimulationRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SimulationRow(
+      id: serializer.fromJson<int>(json['id']),
+      symbol: serializer.fromJson<String>(json['symbol']),
+      assetName: serializer.fromJson<String>(json['assetName']),
+      paramsJson: serializer.fromJson<String>(json['paramsJson']),
+      resultJson: serializer.fromJson<String>(json['resultJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'symbol': serializer.toJson<String>(symbol),
+      'assetName': serializer.toJson<String>(assetName),
+      'paramsJson': serializer.toJson<String>(paramsJson),
+      'resultJson': serializer.toJson<String>(resultJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  SimulationRow copyWith({
+    int? id,
+    String? symbol,
+    String? assetName,
+    String? paramsJson,
+    String? resultJson,
+    DateTime? createdAt,
+  }) => SimulationRow(
+    id: id ?? this.id,
+    symbol: symbol ?? this.symbol,
+    assetName: assetName ?? this.assetName,
+    paramsJson: paramsJson ?? this.paramsJson,
+    resultJson: resultJson ?? this.resultJson,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  SimulationRow copyWithCompanion(SimulationsCompanion data) {
+    return SimulationRow(
+      id: data.id.present ? data.id.value : this.id,
+      symbol: data.symbol.present ? data.symbol.value : this.symbol,
+      assetName: data.assetName.present ? data.assetName.value : this.assetName,
+      paramsJson: data.paramsJson.present
+          ? data.paramsJson.value
+          : this.paramsJson,
+      resultJson: data.resultJson.present
+          ? data.resultJson.value
+          : this.resultJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SimulationRow(')
+          ..write('id: $id, ')
+          ..write('symbol: $symbol, ')
+          ..write('assetName: $assetName, ')
+          ..write('paramsJson: $paramsJson, ')
+          ..write('resultJson: $resultJson, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, symbol, assetName, paramsJson, resultJson, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SimulationRow &&
+          other.id == this.id &&
+          other.symbol == this.symbol &&
+          other.assetName == this.assetName &&
+          other.paramsJson == this.paramsJson &&
+          other.resultJson == this.resultJson &&
+          other.createdAt == this.createdAt);
+}
+
+class SimulationsCompanion extends UpdateCompanion<SimulationRow> {
+  final Value<int> id;
+  final Value<String> symbol;
+  final Value<String> assetName;
+  final Value<String> paramsJson;
+  final Value<String> resultJson;
+  final Value<DateTime> createdAt;
+  const SimulationsCompanion({
+    this.id = const Value.absent(),
+    this.symbol = const Value.absent(),
+    this.assetName = const Value.absent(),
+    this.paramsJson = const Value.absent(),
+    this.resultJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  SimulationsCompanion.insert({
+    this.id = const Value.absent(),
+    required String symbol,
+    required String assetName,
+    required String paramsJson,
+    required String resultJson,
+    required DateTime createdAt,
+  }) : symbol = Value(symbol),
+       assetName = Value(assetName),
+       paramsJson = Value(paramsJson),
+       resultJson = Value(resultJson),
+       createdAt = Value(createdAt);
+  static Insertable<SimulationRow> custom({
+    Expression<int>? id,
+    Expression<String>? symbol,
+    Expression<String>? assetName,
+    Expression<String>? paramsJson,
+    Expression<String>? resultJson,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (symbol != null) 'symbol': symbol,
+      if (assetName != null) 'asset_name': assetName,
+      if (paramsJson != null) 'params_json': paramsJson,
+      if (resultJson != null) 'result_json': resultJson,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  SimulationsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? symbol,
+    Value<String>? assetName,
+    Value<String>? paramsJson,
+    Value<String>? resultJson,
+    Value<DateTime>? createdAt,
+  }) {
+    return SimulationsCompanion(
+      id: id ?? this.id,
+      symbol: symbol ?? this.symbol,
+      assetName: assetName ?? this.assetName,
+      paramsJson: paramsJson ?? this.paramsJson,
+      resultJson: resultJson ?? this.resultJson,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (symbol.present) {
+      map['symbol'] = Variable<String>(symbol.value);
+    }
+    if (assetName.present) {
+      map['asset_name'] = Variable<String>(assetName.value);
+    }
+    if (paramsJson.present) {
+      map['params_json'] = Variable<String>(paramsJson.value);
+    }
+    if (resultJson.present) {
+      map['result_json'] = Variable<String>(resultJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SimulationsCompanion(')
+          ..write('id: $id, ')
+          ..write('symbol: $symbol, ')
+          ..write('assetName: $assetName, ')
+          ..write('paramsJson: $paramsJson, ')
+          ..write('resultJson: $resultJson, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1525,12 +2364,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $WeeklyCandlesTable weeklyCandles = $WeeklyCandlesTable(this);
   late final $FavoritesTable favorites = $FavoritesTable(this);
   late final $CacheMetaTable cacheMeta = $CacheMetaTable(this);
+  late final $FxRatesTable fxRates = $FxRatesTable(this);
+  late final $InflationRatesTable inflationRates = $InflationRatesTable(this);
+  late final $SimulationsTable simulations = $SimulationsTable(this);
   late final InstrumentsDao instrumentsDao = InstrumentsDao(
     this as AppDatabase,
   );
   late final FavoritesDao favoritesDao = FavoritesDao(this as AppDatabase);
   late final CandlesDao candlesDao = CandlesDao(this as AppDatabase);
   late final CacheMetaDao cacheMetaDao = CacheMetaDao(this as AppDatabase);
+  late final FxRatesDao fxRatesDao = FxRatesDao(this as AppDatabase);
+  late final InflationDao inflationDao = InflationDao(this as AppDatabase);
+  late final SimulationsDao simulationsDao = SimulationsDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1540,6 +2387,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     weeklyCandles,
     favorites,
     cacheMeta,
+    fxRates,
+    inflationRates,
+    simulations,
   ];
   @override
   DriftDatabaseOptions get options =>
@@ -2384,6 +3234,500 @@ typedef $$CacheMetaTableProcessedTableManager =
       CacheMetaRow,
       PrefetchHooks Function()
     >;
+typedef $$FxRatesTableCreateCompanionBuilder = FxRatesCompanion Function({
+  required String day,
+  required double eurUsd,
+  Value<int> rowid,
+});
+typedef $$FxRatesTableUpdateCompanionBuilder = FxRatesCompanion Function({
+  Value<String> day,
+  Value<double> eurUsd,
+  Value<int> rowid,
+});
+
+class $$FxRatesTableFilterComposer
+    extends Composer<_$AppDatabase, $FxRatesTable> {
+  $$FxRatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get eurUsd => $composableBuilder(
+    column: $table.eurUsd,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FxRatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $FxRatesTable> {
+  $$FxRatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get eurUsd => $composableBuilder(
+    column: $table.eurUsd,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FxRatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FxRatesTable> {
+  $$FxRatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get day =>
+      $composableBuilder(column: $table.day, builder: (column) => column);
+
+  GeneratedColumn<double> get eurUsd =>
+      $composableBuilder(column: $table.eurUsd, builder: (column) => column);
+}
+
+class $$FxRatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FxRatesTable,
+          FxRateRow,
+          $$FxRatesTableFilterComposer,
+          $$FxRatesTableOrderingComposer,
+          $$FxRatesTableAnnotationComposer,
+          $$FxRatesTableCreateCompanionBuilder,
+          $$FxRatesTableUpdateCompanionBuilder,
+          (FxRateRow, BaseReferences<_$AppDatabase, $FxRatesTable, FxRateRow>),
+          FxRateRow,
+          PrefetchHooks Function()
+        > {
+  $$FxRatesTableTableManager(_$AppDatabase db, $FxRatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FxRatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FxRatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FxRatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> day = const Value.absent(),
+            Value<double> eurUsd = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => FxRatesCompanion(day: day, eurUsd: eurUsd, rowid: rowid),
+          createCompanionCallback: ({
+            required String day,
+            required double eurUsd,
+            Value<int> rowid = const Value.absent(),
+          }) => FxRatesCompanion.insert(day: day, eurUsd: eurUsd, rowid: rowid),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$FxRatesTable, FxRateRow>(table),
+                  BaseReferences<_$AppDatabase, $FxRatesTable, FxRateRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FxRatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FxRatesTable,
+      FxRateRow,
+      $$FxRatesTableFilterComposer,
+      $$FxRatesTableOrderingComposer,
+      $$FxRatesTableAnnotationComposer,
+      $$FxRatesTableCreateCompanionBuilder,
+      $$FxRatesTableUpdateCompanionBuilder,
+      (FxRateRow, BaseReferences<_$AppDatabase, $FxRatesTable, FxRateRow>),
+      FxRateRow,
+      PrefetchHooks Function()
+    >;
+typedef $$InflationRatesTableCreateCompanionBuilder =
+    InflationRatesCompanion Function({Value<int> year, required double rate});
+typedef $$InflationRatesTableUpdateCompanionBuilder =
+    InflationRatesCompanion Function({Value<int> year, Value<double> rate});
+
+class $$InflationRatesTableFilterComposer
+    extends Composer<_$AppDatabase, $InflationRatesTable> {
+  $$InflationRatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$InflationRatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $InflationRatesTable> {
+  $$InflationRatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$InflationRatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InflationRatesTable> {
+  $$InflationRatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<double> get rate =>
+      $composableBuilder(column: $table.rate, builder: (column) => column);
+}
+
+class $$InflationRatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $InflationRatesTable,
+          InflationRow,
+          $$InflationRatesTableFilterComposer,
+          $$InflationRatesTableOrderingComposer,
+          $$InflationRatesTableAnnotationComposer,
+          $$InflationRatesTableCreateCompanionBuilder,
+          $$InflationRatesTableUpdateCompanionBuilder,
+          (
+            InflationRow,
+            BaseReferences<_$AppDatabase, $InflationRatesTable, InflationRow>,
+          ),
+          InflationRow,
+          PrefetchHooks Function()
+        > {
+  $$InflationRatesTableTableManager(
+    _$AppDatabase db,
+    $InflationRatesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$InflationRatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$InflationRatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$InflationRatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> year = const Value.absent(),
+            Value<double> rate = const Value.absent(),
+          }) => InflationRatesCompanion(year: year, rate: rate),
+          createCompanionCallback: ({
+            Value<int> year = const Value.absent(),
+            required double rate,
+          }) => InflationRatesCompanion.insert(year: year, rate: rate),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$InflationRatesTable, InflationRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $InflationRatesTable,
+                    InflationRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$InflationRatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $InflationRatesTable,
+      InflationRow,
+      $$InflationRatesTableFilterComposer,
+      $$InflationRatesTableOrderingComposer,
+      $$InflationRatesTableAnnotationComposer,
+      $$InflationRatesTableCreateCompanionBuilder,
+      $$InflationRatesTableUpdateCompanionBuilder,
+      (
+        InflationRow,
+        BaseReferences<_$AppDatabase, $InflationRatesTable, InflationRow>,
+      ),
+      InflationRow,
+      PrefetchHooks Function()
+    >;
+typedef $$SimulationsTableCreateCompanionBuilder =
+    SimulationsCompanion Function({
+      Value<int> id,
+      required String symbol,
+      required String assetName,
+      required String paramsJson,
+      required String resultJson,
+      required DateTime createdAt,
+    });
+typedef $$SimulationsTableUpdateCompanionBuilder =
+    SimulationsCompanion Function({
+      Value<int> id,
+      Value<String> symbol,
+      Value<String> assetName,
+      Value<String> paramsJson,
+      Value<String> resultJson,
+      Value<DateTime> createdAt,
+    });
+
+class $$SimulationsTableFilterComposer
+    extends Composer<_$AppDatabase, $SimulationsTable> {
+  $$SimulationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get symbol => $composableBuilder(
+    column: $table.symbol,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assetName => $composableBuilder(
+    column: $table.assetName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paramsJson => $composableBuilder(
+    column: $table.paramsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get resultJson => $composableBuilder(
+    column: $table.resultJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SimulationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SimulationsTable> {
+  $$SimulationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get symbol => $composableBuilder(
+    column: $table.symbol,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get assetName => $composableBuilder(
+    column: $table.assetName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paramsJson => $composableBuilder(
+    column: $table.paramsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get resultJson => $composableBuilder(
+    column: $table.resultJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SimulationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SimulationsTable> {
+  $$SimulationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get symbol =>
+      $composableBuilder(column: $table.symbol, builder: (column) => column);
+
+  GeneratedColumn<String> get assetName =>
+      $composableBuilder(column: $table.assetName, builder: (column) => column);
+
+  GeneratedColumn<String> get paramsJson => $composableBuilder(
+    column: $table.paramsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get resultJson => $composableBuilder(
+    column: $table.resultJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$SimulationsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SimulationsTable,
+          SimulationRow,
+          $$SimulationsTableFilterComposer,
+          $$SimulationsTableOrderingComposer,
+          $$SimulationsTableAnnotationComposer,
+          $$SimulationsTableCreateCompanionBuilder,
+          $$SimulationsTableUpdateCompanionBuilder,
+          (
+            SimulationRow,
+            BaseReferences<_$AppDatabase, $SimulationsTable, SimulationRow>,
+          ),
+          SimulationRow,
+          PrefetchHooks Function()
+        > {
+  $$SimulationsTableTableManager(_$AppDatabase db, $SimulationsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SimulationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SimulationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SimulationsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> symbol = const Value.absent(),
+                Value<String> assetName = const Value.absent(),
+                Value<String> paramsJson = const Value.absent(),
+                Value<String> resultJson = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => SimulationsCompanion(
+                id: id,
+                symbol: symbol,
+                assetName: assetName,
+                paramsJson: paramsJson,
+                resultJson: resultJson,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String symbol,
+                required String assetName,
+                required String paramsJson,
+                required String resultJson,
+                required DateTime createdAt,
+              }) => SimulationsCompanion.insert(
+                id: id,
+                symbol: symbol,
+                assetName: assetName,
+                paramsJson: paramsJson,
+                resultJson: resultJson,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SimulationsTable, SimulationRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $SimulationsTable,
+                    SimulationRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SimulationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SimulationsTable,
+      SimulationRow,
+      $$SimulationsTableFilterComposer,
+      $$SimulationsTableOrderingComposer,
+      $$SimulationsTableAnnotationComposer,
+      $$SimulationsTableCreateCompanionBuilder,
+      $$SimulationsTableUpdateCompanionBuilder,
+      (
+        SimulationRow,
+        BaseReferences<_$AppDatabase, $SimulationsTable, SimulationRow>,
+      ),
+      SimulationRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2396,4 +3740,10 @@ class $AppDatabaseManager {
       $$FavoritesTableTableManager(_db, _db.favorites);
   $$CacheMetaTableTableManager get cacheMeta =>
       $$CacheMetaTableTableManager(_db, _db.cacheMeta);
+  $$FxRatesTableTableManager get fxRates =>
+      $$FxRatesTableTableManager(_db, _db.fxRates);
+  $$InflationRatesTableTableManager get inflationRates =>
+      $$InflationRatesTableTableManager(_db, _db.inflationRates);
+  $$SimulationsTableTableManager get simulations =>
+      $$SimulationsTableTableManager(_db, _db.simulations);
 }

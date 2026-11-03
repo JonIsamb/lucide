@@ -70,6 +70,40 @@ class CacheMeta extends Table {
   Set<Column> get primaryKey => {symbol};
 }
 
+/// EUR/USD rate of each day with a quote (Frankfurter). Network data: the
+/// cache purge may empty it, user data never lives here.
+@DataClassName('FxRateRow')
+class FxRates extends Table {
+  TextColumn get day => text()(); // "2026-10-05"
+  RealColumn get eurUsd => real()();
+
+  @override
+  Set<Column> get primaryKey => {day};
+}
+
+/// Yearly inflation in France, in % (World Bank). Network data.
+@DataClassName('InflationRow')
+class InflationRates extends Table {
+  IntColumn get year => integer()();
+  RealColumn get rate => real()();
+
+  @override
+  Set<Column> get primaryKey => {year};
+}
+
+/// Simulations saved by the user. User data: never purged with the cache.
+/// The parameters and the result are frozen JSON (see SimulationResult),
+/// so a saved simulation is never recomputed with newer data.
+@DataClassName('SimulationRow')
+class Simulations extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get symbol => text()();
+  TextColumn get assetName => text()();
+  TextColumn get paramsJson => text()();
+  TextColumn get resultJson => text()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
 // --- DAOs -----------------------------------------------------------------
 // A DAO groups the queries of one table, so the repository reads like
 // "candlesDao.lastCandles(...)" and never writes SQL itself.
@@ -194,11 +228,86 @@ class CacheMetaDao extends DatabaseAccessor<AppDatabase>
   }
 }
 
+@DriftAccessor(tables: [FxRates])
+class FxRatesDao extends DatabaseAccessor<AppDatabase> with _$FxRatesDaoMixin {
+  FxRatesDao(super.attachedDatabase);
+
+  /// All rates, oldest first ("2026-10-05" sorts like the dates).
+  Future<List<FxRateRow>> allRates() {
+    return (select(fxRates)..orderBy([(t) => OrderingTerm.asc(t.day)])).get();
+  }
+
+  Future<void> upsertAll(List<FxRatesCompanion> rows) {
+    return batch((b) => b.insertAllOnConflictUpdate(fxRates, rows));
+  }
+
+  /// Last day we have a rate for, or null when the table is empty.
+  Future<String?> lastDay() async {
+    final row =
+        await (select(fxRates)
+              ..orderBy([(t) => OrderingTerm.desc(t.day)])
+              ..limit(1))
+            .getSingleOrNull();
+    return row?.day;
+  }
+}
+
+@DriftAccessor(tables: [InflationRates])
+class InflationDao extends DatabaseAccessor<AppDatabase>
+    with _$InflationDaoMixin {
+  InflationDao(super.attachedDatabase);
+
+  Future<List<InflationRow>> allRates() => select(inflationRates).get();
+
+  Future<void> upsertAll(List<InflationRatesCompanion> rows) {
+    return batch((b) => b.insertAllOnConflictUpdate(inflationRates, rows));
+  }
+}
+
+@DriftAccessor(tables: [Simulations])
+class SimulationsDao extends DatabaseAccessor<AppDatabase>
+    with _$SimulationsDaoMixin {
+  SimulationsDao(super.attachedDatabase);
+
+  /// Newest first.
+  Future<List<SimulationRow>> allSimulations() {
+    return (select(simulations)..orderBy([
+          (t) => OrderingTerm.desc(t.createdAt),
+          (t) => OrderingTerm.desc(t.id),
+        ]))
+        .get();
+  }
+
+  Future<int> insertSimulation(SimulationsCompanion row) {
+    return into(simulations).insert(row);
+  }
+
+  Future<void> deleteSimulation(int id) async {
+    await (delete(simulations)..where((t) => t.id.equals(id))).go();
+  }
+}
+
 // --- Database ---------------------------------------------------------------
 
 @DriftDatabase(
-  tables: [Instruments, WeeklyCandles, Favorites, CacheMeta],
-  daos: [InstrumentsDao, FavoritesDao, CandlesDao, CacheMetaDao],
+  tables: [
+    Instruments,
+    WeeklyCandles,
+    Favorites,
+    CacheMeta,
+    FxRates,
+    InflationRates,
+    Simulations,
+  ],
+  daos: [
+    InstrumentsDao,
+    FavoritesDao,
+    CandlesDao,
+    CacheMetaDao,
+    FxRatesDao,
+    InflationDao,
+    SimulationsDao,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   /// Without argument: the real SQLite file on the phone.
@@ -208,5 +317,18 @@ class AppDatabase extends _$AppDatabase {
 
   // Increase this number and add a migration when a table changes.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  // Version 2 adds the simulator tables: existing data is kept.
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(fxRates);
+        await m.createTable(inflationRates);
+        await m.createTable(simulations);
+      }
+    },
+  );
 }
