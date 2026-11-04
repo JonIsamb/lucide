@@ -200,7 +200,7 @@ class _MysteryChartPainter extends CustomPainter {
     );
     canvas.drawRRect(
       zone,
-      Paint()..color = Color.lerp(AppColors.sand, outcomeTint, reveal)!,
+      Paint()..color = Color.lerp(AppColors.lightGreen, outcomeTint, reveal)!,
     );
     _drawDashedLine(
       canvas,

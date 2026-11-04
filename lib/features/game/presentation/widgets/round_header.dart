@@ -75,7 +75,7 @@ class RoundHeader extends StatelessWidget {
   Color _segmentColor(int index) {
     if (index < answered) return AppColors.primary;
     if (index == roundIndex) return AppColors.primary.withValues(alpha: 0.45);
-    return AppColors.sand;
+    return AppColors.lightGreen;
   }
 }
 

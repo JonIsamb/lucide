@@ -8,12 +8,12 @@ import 'package:flutter/material.dart';
 /// and ink; primary on sand.
 abstract final class AppColors {
   /// Bordeaux: main buttons, active tab, filled star, sort button, links.
-  static const primary = Color(0xFF7A1A33);
+  static const primary = Color(0xFF047857);
 
   /// Logo fallback, light tints, active tab indicator.
-  static const sand = Color(0xFFE8DCC8);
+  static const lightGreen = Color(0xFFD7F5E8);
 
-  static const background = Color(0xFFF5F3F1);
+  static const background = Color(0xFFF8F3F1);
   static const surface = Color(0xFFFFFFFF);
 
   /// Main text.
@@ -33,6 +33,19 @@ abstract final class AppColors {
   /// rise on riseTint and fall on fallTint keep the 4.5:1 ratio.
   static const riseTint = Color(0xFFDDF0E7);
   static const fallTint = Color(0xFFFDE8E3);
+
+  /// Background of the last simulation card on the home screen. White text
+  /// on it keeps the 4.5:1 ratio.
+  static const simulationCard = Color(0xFF047857);
+
+  /// Bar of the last simulation card (on simulationCard): what the costs
+  /// took, and what is left.
+  static const costSegment = Color(0xFF0B5E46);
+  static const remainSegment = Color(0xFF6EE7B7);
+
+  /// Background of the "Teste ton intuition" shortcut, and its text.
+  static const gameTint = Color(0xFFECE8FB);
+  static const gameInk = Color(0xFF4B3A9E);
 
   /// Grey used by loading skeletons.
   static const skeleton = Color(0xFFECE7E2);
