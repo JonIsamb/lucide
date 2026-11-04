@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/widgets/glass_nav_bar.dart';
 import 'features/catalog/presentation/catalog_screen.dart';
 import 'features/game/presentation/game_screen.dart';
 import 'features/home/home_screen.dart';
@@ -58,44 +61,64 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    // The bar floats at the bottom: pages stop above it so no button or
+    // list end is hidden behind the glass.
+    final media = MediaQuery.of(context);
+    final barSpace =
+        GlassNavBar.height + 12 + math.max(media.padding.bottom, 8);
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
+      body: Stack(
         children: [
-          HomeScreen(onOpenTab: _select),
-          const CatalogScreen(),
-          if (_simulatorOpened)
-            const SimulatorScreen()
-          else
-            const SizedBox.shrink(),
-          if (_gameOpened)
-            GameScreen(onGoHome: () => _select(0))
-          else
-            const SizedBox.shrink(),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: _select,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Accueil',
+          Positioned.fill(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: barSpace),
+              child: IndexedStack(
+                index: _index,
+                children: [
+                  HomeScreen(onOpenTab: _select),
+                  const CatalogScreen(),
+                  if (_simulatorOpened)
+                    const SimulatorScreen()
+                  else
+                    const SizedBox.shrink(),
+                  if (_gameOpened)
+                    GameScreen(onGoHome: () => _select(0))
+                  else
+                    const SizedBox.shrink(),
+                ],
+              ),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.trending_up_rounded),
-            label: 'Catalogue',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.calculate_outlined),
-            selectedIcon: Icon(Icons.calculate_rounded),
-            label: 'Simulations',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.casino_outlined),
-            selectedIcon: Icon(Icons.casino_rounded),
-            label: 'Jeu',
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: GlassNavBar(
+              selectedIndex: _index,
+              onSelected: _select,
+              items: const [
+                GlassNavItem(
+                  icon: Icons.home_outlined,
+                  selectedIcon: Icons.home_rounded,
+                  label: 'Accueil',
+                ),
+                GlassNavItem(
+                  icon: Icons.trending_up_rounded,
+                  selectedIcon: Icons.trending_up_rounded,
+                  label: 'Catalogue',
+                ),
+                GlassNavItem(
+                  icon: Icons.calculate_outlined,
+                  selectedIcon: Icons.calculate_rounded,
+                  label: 'Simulations',
+                ),
+                GlassNavItem(
+                  icon: Icons.casino_outlined,
+                  selectedIcon: Icons.casino_rounded,
+                  label: 'Jeu',
+                ),
+              ],
+            ),
           ),
         ],
       ),
