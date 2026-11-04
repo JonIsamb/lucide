@@ -110,7 +110,7 @@ class _GlassNavButton extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: selected
-                  ? AppColors.sand.withValues(alpha: 0.6)
+                  ? AppColors.lightGreen.withValues(alpha: 0.6)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(26),
             ),

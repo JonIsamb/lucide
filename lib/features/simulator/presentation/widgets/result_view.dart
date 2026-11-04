@@ -214,7 +214,7 @@ class _HeroCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: AppColors.sand,
+              color: AppColors.lightGreen,
             ),
           ),
           const SizedBox(height: 6),
@@ -252,7 +252,7 @@ class _HeroCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: AppColors.sand,
+              color: AppColors.lightGreen,
               fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
@@ -262,7 +262,7 @@ class _HeroCard extends StatelessWidget {
                 ? TextButton.icon(
                     onPressed: onReplay,
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.sand,
+                      foregroundColor: AppColors.lightGreen,
                     ),
                     icon: const Icon(Icons.replay_rounded, size: 18),
                     label: const Text('Rejouer l’animation'),

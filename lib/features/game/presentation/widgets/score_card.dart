@@ -27,7 +27,7 @@ class ScoreCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: AppColors.sand,
+              color: AppColors.lightGreen,
             ),
           ),
           const SizedBox(height: 10),
@@ -54,7 +54,7 @@ class ScoreCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.sand,
+                    color: AppColors.lightGreen,
                   ),
                 ),
               ],
@@ -104,7 +104,7 @@ class _ChanceGauge extends StatelessWidget {
   static const _labelStyle = TextStyle(
     fontSize: 12.5,
     fontWeight: FontWeight.w800,
-    color: AppColors.sand,
+    color: AppColors.lightGreen,
   );
 
   @override
@@ -141,7 +141,7 @@ class _ChanceGauge extends StatelessWidget {
                     width: at(bounds.upper) - at(bounds.lower),
                     top: trackTop,
                     height: _trackHeight,
-                    child: const ColoredBox(color: AppColors.sand),
+                    child: const ColoredBox(color: AppColors.lightGreen),
                   ),
                   Positioned(
                     // Kept inside the track at both ends.

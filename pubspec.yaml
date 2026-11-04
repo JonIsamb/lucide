@@ -42,6 +42,9 @@ dependencies:
   cached_network_image: ^4.0.4
   intl: ^0.20.3
   liquid_glass_renderer: ^1.0.0-dev.2
+
+  # Segmented bar
+  segmented_progress_bar: ^1.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
