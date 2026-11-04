@@ -34,3 +34,18 @@ Ce fichier alimente le rapport.
 - **Cours inchangé compté comme « plus bas ».** Si le cours après 4 semaines est exactement égal au dernier cours visible, la bonne réponse est « plus bas » (le cours n'est pas plus haut).
 - **Échelle horizontale de la zone masquée.** Les 4 semaines masquées occupent plus de largeur par semaine que les 26 semaines visibles, pour rester lisibles. La pente de la suite révélée paraît donc plus douce qu'elle ne l'est.
 - **Échelle verticale.** Pendant la manche, l'échelle ne tient compte que des semaines visibles, pour ne pas trahir la réponse ; elle s'élargit pendant la révélation.
+
+## Simulation « Ce que j'aurais vraiment gagné »
+
+- **Prix hebdomadaires.** Seules des clôtures hebdomadaires sont en base. Un jour choisi prend la clôture de la dernière bougie commencée ce jour-là ou avant : pour un jour de milieu de semaine, c'est la clôture du vendredi suivant, donc légèrement postérieure au jour choisi. Les dates sont bornées au premier jour de la première bougie et à six jours après le début de la dernière.
+- **Aucun actif éligible au PEA.** Les 30 actifs du catalogue ont `peaEligible: false` (actions et ETF américains, cryptos). Le calcul du PEA (taux réduit après 5 ans exactement) est implémenté et testé, mais l'option est toujours refusée dans l'application.
+- **PEA de moins de 5 ans.** Le taux de 31,4 % du cahier des charges est appliqué ; les effets d'une clôture anticipée du plan ne sont pas modélisés.
+- **Cryptos : une seule cession.** Le seuil de 305 € s'applique à cette cession seule ; les autres ventes de l'année ne sont pas connues. Les cryptos du catalogue sont cotées en euros : aucun effet de change.
+- **Change.** Seuls EUR et USD existent. Un actif en euros n'a pas d'effet de change ; un actif en dollars utilise le taux Frankfurter du jour, ou du dernier jour de cotation antérieur (week-ends, jours fériés). Les cours ne sont pas convertis jour par jour : seuls les taux aux deux dates comptent.
+- **Option pour le barème progressif** hors périmètre : seul le prélèvement forfaitaire est simulé.
+- **Frais.** Courtage identique à l'achat et à la vente (montant fixe, ou pourcentage du montant investi à l'achat et du produit brut à la vente). Frais annuels proratisés sur le montant investi, base 365 jours. Bornes choisies pour la pédagogie, pas issues d'une règle : courtage jusqu'à 5 % (ou jusqu'au montant investi s'il est en euros), frais annuels de 0 à 5 %.
+- **Base d'imposition.** Produit net de vente (après frais de vente et frais annuels) moins coût d'acquisition frais d'achat inclus. Pas de report des moins-values.
+- **Inflation.** Taux annuel moyen France de la Banque mondiale (`FP.CPI.TOTL.ZG`), composé par année civile, au prorata des jours pour les années partielles. Une année sans taux publié (l'année en cours, souvent l'année précédente) reprend le dernier taux connu, et le résultat est marqué « estimé ». Les données embarquées s'arrêtent à 2025 : toute simulation touchant 2026 est estimée tant que le réseau n'a pas apporté la valeur.
+- **Pouvoir d'achat en euros du jour d'achat.** « Valeur réelle » = montant investi × (1 + rendement réel), exprimée en euros de la date d'achat.
+- **Cours non ajustés des dividendes.** Comme sur la fiche : la performance brute des actifs distribuants est sous-estimée.
+- **Taux d'impôt non revérifiés.** Ils viennent du cahier des charges et sont indiqués comme tels dans `fiscal_rules_2026.dart`.

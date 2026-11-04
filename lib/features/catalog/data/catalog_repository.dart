@@ -101,6 +101,12 @@ class CatalogRepository {
     ];
   }
 
+  /// The catalogue's assets without their prices, for the simulator form.
+  Future<List<Instrument>> loadInstruments() async {
+    final rows = await _database.instrumentsDao.allInstruments();
+    return rows.map(_toInstrument).toList();
+  }
+
   Future<AssetOverview?> loadOverview(String symbol) async {
     final row = await _database.instrumentsDao.instrument(symbol);
     if (row == null) return null;
