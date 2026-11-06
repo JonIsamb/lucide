@@ -61,23 +61,22 @@ void main() {
     expect(state().score, 0);
   });
 
-  test('the hint is shown for the round on screen only', () {
-    expect(state().hintShown, isFalse);
+  test('the explanation is for the revealed round on screen only', () {
+    // Too early: the answer is not given yet.
+    controller().explain();
+    expect(state().explainedRounds, isEmpty);
 
-    controller().showHint();
-    expect(state().hintShown, isTrue);
-    expect(state().hintRounds, {0});
-
-    // Still shown once the round is revealed, not on the next round.
     controller().answer(Guess.higher);
-    expect(state().hintShown, isTrue);
-    controller().nextRound();
-    expect(state().hintShown, isFalse);
+    expect(state().explanationShown, isFalse);
+    controller().explain();
+    expect(state().explanationShown, isTrue);
+    expect(state().explainedRounds, {0});
 
-    // Too late to ask for it once the answer is given.
+    // Not carried over to the next round.
+    controller().nextRound();
+    expect(state().explanationShown, isFalse);
     controller().answer(Guess.lower);
-    controller().showHint();
-    expect(state().hintRounds, {0});
+    expect(state().explanationShown, isFalse);
   });
 
   test('nextRound does nothing before an answer', () {

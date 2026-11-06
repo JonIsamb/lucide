@@ -6,13 +6,15 @@ import '../../../core/utils/formatters.dart';
 import '../../asset_detail/asset_detail_screen.dart';
 import '../domain/game_round.dart';
 import '../domain/game_verdict.dart';
+import '../domain/window_regime.dart';
 import 'game_controller.dart';
 import 'game_state.dart';
 import 'sample_stats.dart';
 import 'widgets/asset_context_card.dart';
+import 'widgets/explanation_card.dart';
+import 'widgets/context_card.dart';
 import 'widgets/game_action_bar.dart';
 import 'widgets/guess_buttons.dart';
-import 'widgets/hint_card.dart';
 import 'widgets/mystery_chart.dart';
 import 'widgets/reveal_banner.dart';
 import 'widgets/round_header.dart';
@@ -60,7 +62,7 @@ class GameScreen extends ConsumerWidget {
     return _RoundView(
       state: state,
       onGuess: controller.answer,
-      onHint: controller.showHint,
+      onExplain: controller.explain,
       onNext: controller.nextRound,
     );
   }
@@ -99,13 +101,13 @@ class _RoundView extends StatelessWidget {
   const _RoundView({
     required this.state,
     required this.onGuess,
-    required this.onHint,
+    required this.onExplain,
     required this.onNext,
   });
 
   final GameState state;
   final ValueChanged<Guess> onGuess;
-  final VoidCallback onHint;
+  final VoidCallback onExplain;
   final VoidCallback onNext;
 
   @override
@@ -159,6 +161,20 @@ class _RoundView extends StatelessWidget {
               color: AppColors.ink,
             ),
           ),
+          const SizedBox(height: 12),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            alignment: Alignment.topCenter,
+            child: state.explanationShown
+                ? ExplanationCard(
+                    round: round,
+                    analysis: analyzeWindow([
+                      ...round.history,
+                      ...round.future,
+                    ], round.asset.type),
+                  )
+                : ExplainButton(onPressed: onExplain),
+          ),
           const SizedBox(height: 16),
           AssetContextCard(
             asset: round.asset,
@@ -173,11 +189,18 @@ class _RoundView extends StatelessWidget {
             ),
           ),
         ] else ...[
+          // What the player knows when he bets: the company and the world
+          // up to the last visible week, never the hidden ones.
+          ContextCard(
+            round: round,
+            analysis: analyzeWindow(round.history, round.asset.type),
+          ),
+          const SizedBox(height: 16),
           Semantics(
             header: true,
             child: Text(
-              'Dans ${round.future.length} semaines, le cours sera plus '
-              'haut ou plus bas ?',
+              'Dans ${round.future.length} semaines, le cours de '
+              '${round.asset.name} sera plus haut ou plus bas ?',
               style: const TextStyle(
                 fontSize: 21,
                 fontWeight: FontWeight.w900,
@@ -189,11 +212,6 @@ class _RoundView extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           GuessButtons(onGuess: onGuess),
-          const SizedBox(height: 14),
-          if (state.hintShown)
-            HintCard(hints: round.hints)
-          else
-            HintButton(onPressed: onHint),
         ],
       ],
     );
@@ -245,7 +263,8 @@ class _ChartCard extends StatelessWidget {
                     ),
                   )
                 : Text(
-                    'Un actif mystère, ${round.history.length} semaines, '
+                    '${round.asset.name}, '
+                    '${formatMonthRange(round.start, round.visibleEnd)}, '
                     'ramené à 100 au départ',
                     style: const TextStyle(
                       fontSize: 14,

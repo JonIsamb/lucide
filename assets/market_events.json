@@ -1,0 +1,335 @@
+[
+  {
+    "id": "omicron-2021-11",
+    "start": "2021-11-26",
+    "end": "2021-12-15",
+    "title": "Le variant Omicron inquiète",
+    "appliesTo": [
+      "stock",
+      "etf",
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2021-11-26",
+        "text": "L'Organisation mondiale de la santé classe le variant Omicron parmi les variants « préoccupants »."
+      }
+    ],
+    "mechanism": "Une nouvelle vague de restrictions sanitaires pourrait freiner la reprise de l'économie. Les investisseurs n'aiment pas l'incertitude.",
+    "summary": "Le 26 novembre 2021, l'Organisation mondiale de la santé classe le variant Omicron parmi les variants « préoccupants ». Les investisseurs redoutaient de nouvelles restrictions sanitaires et un coup de frein à la reprise économique : l'incertitude pousse souvent à vendre d'abord et à comprendre ensuite.",
+    "sources": [
+      {
+        "label": "OMS, 26 novembre 2021",
+        "url": "https://www.who.int/news/item/26-11-2021-classification-of-omicron-(b.1.1.529)-sars-cov-2-variant-of-concern"
+      }
+    ]
+  },
+  {
+    "id": "ukraine-2022-02",
+    "start": "2022-02-24",
+    "end": "2022-03-31",
+    "title": "La Russie envahit l'Ukraine",
+    "appliesTo": [
+      "stock",
+      "etf",
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2022-02-24",
+        "text": "La Russie lance une invasion à grande échelle de l'Ukraine."
+      }
+    ],
+    "mechanism": "Une guerre en Europe rend l'avenir difficile à prévoir (énergie, matières premières, confiance). En période d'incertitude, beaucoup d'investisseurs préfèrent réduire leurs risques.",
+    "summary": "Le 24 février 2022, la Russie lance une invasion à grande échelle de l'Ukraine, et de nombreux pays imposent des sanctions. Une guerre en Europe rend l'avenir difficile à prévoir (énergie, matières premières, confiance) : en période d'incertitude, beaucoup d'investisseurs préfèrent réduire leurs risques.",
+    "sources": [
+      {
+        "label": "Wikipédia, invasion de l'Ukraine en 2022",
+        "url": "https://en.wikipedia.org/wiki/2022_Russian_invasion_of_Ukraine"
+      }
+    ]
+  },
+  {
+    "id": "fed-hikes-2022-2023",
+    "start": "2022-03-16",
+    "end": "2023-07-26",
+    "title": "La Fed remonte ses taux, de 0,25 % à 5,50 %",
+    "appliesTo": [
+      "stock",
+      "etf",
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2022-03-16",
+        "text": "La Fed relève son taux directeur à 0,25-0,50 % et annonce que d'autres hausses suivront."
+      },
+      {
+        "date": "2022-05-04",
+        "text": "Nouvelle hausse : le taux directeur passe à 0,75-1 %."
+      },
+      {
+        "date": "2023-07-26",
+        "text": "Le taux directeur atteint 5,25-5,50 %."
+      }
+    ],
+    "mechanism": "Quand les taux montent, les placements sans risque rapportent plus et les profits futurs des entreprises valent moins aujourd'hui. Les actions, surtout celles de la technologie, et les cryptos ont tendance à en souffrir.",
+    "summary": "Le 16 mars 2022, la Fed relève son taux directeur à 0,25-0,50 % et annonce que d'autres hausses suivront. Le 4 mai 2022 il passe à 0,75-1 %, et le 26 juillet 2023 à 5,25-5,50 %. Quand les taux montent, les placements sans risque rapportent plus et les profits futurs des entreprises valent moins aujourd'hui : les actions, surtout celles de la technologie, et les cryptos ont tendance à souffrir.",
+    "sources": [
+      {
+        "label": "Fed, 16 mars 2022",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20220316a.htm"
+      },
+      {
+        "label": "Fed, 4 mai 2022",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20220504a.htm"
+      },
+      {
+        "label": "Fed, 26 juillet 2023",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20230726a.htm"
+      }
+    ]
+  },
+  {
+    "id": "terra-luna-2022-05",
+    "start": "2022-05-09",
+    "end": "2022-05-31",
+    "title": "Effondrement de TerraUSD et de Luna",
+    "appliesTo": [
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2022-05-09",
+        "text": "TerraUSD (UST), une crypto censée valoir toujours 1 $, commence à perdre son ancrage."
+      },
+      {
+        "date": "2022-05-13",
+        "text": "Terraform Labs suspend temporairement la blockchain Terra."
+      }
+    ],
+    "mechanism": "Quand une crypto jugée stable s'effondre, la confiance dans tout le secteur est touchée, et beaucoup d'investisseurs vendent.",
+    "summary": "À partir du 9 mai 2022, TerraUSD (UST), une crypto censée valoir toujours 1 $, perd son ancrage et tombe vers 0,10 $ en une semaine. Luna, la crypto liée, chute presque à zéro, et près de 45 milliards de dollars de valeur disparaissent. La confiance dans tout le secteur est touchée : les cryptos montrent combien elles peuvent bouger en quelques jours.",
+    "sources": [
+      {
+        "label": "Wikipédia, TerraUSD",
+        "url": "https://en.wikipedia.org/wiki/TerraUSD"
+      }
+    ]
+  },
+  {
+    "id": "ftx-2022-11",
+    "start": "2022-11-09",
+    "end": "2022-12-31",
+    "title": "Faillite de la plateforme FTX",
+    "appliesTo": [
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2022-11-09",
+        "text": "La plateforme d'échange FTX cesse de traiter les retraits."
+      },
+      {
+        "date": "2022-11-11",
+        "text": "FTX dépose son bilan aux États-Unis (chapitre 11)."
+      }
+    ],
+    "mechanism": "Quand une grande plateforme s'effondre, les clients retirent leurs fonds ailleurs et vendent : la défiance se propage à tout le secteur.",
+    "summary": "Le 9 novembre 2022, la plateforme d'échange FTX cesse de traiter les retraits, puis dépose son bilan le 11 novembre. Le bitcoin tombe à son plus bas niveau depuis deux ans. Quand une grande plateforme s'effondre, les clients retirent leurs fonds ailleurs et vendent : la défiance se propage à tout le secteur.",
+    "sources": [
+      {
+        "label": "Wikipédia, faillite de FTX",
+        "url": "https://en.wikipedia.org/wiki/Bankruptcy_of_FTX"
+      }
+    ]
+  },
+  {
+    "id": "svb-2023-03",
+    "start": "2023-03-12",
+    "end": "2023-04-15",
+    "title": "Faillite de Silicon Valley Bank",
+    "appliesTo": [
+      "stock",
+      "etf",
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2023-03-12",
+        "text": "Après la faillite de Silicon Valley Bank et de Signature Bank, les autorités annoncent que tous les déposants seront protégés. La Fed crée un programme de prêts aux banques."
+      }
+    ],
+    "mechanism": "Les investisseurs craignent une contagion à d'autres banques. Les actions bancaires sont les plus exposées, le reste du marché suit plus ou moins.",
+    "summary": "Début mars 2023, Silicon Valley Bank puis Signature Bank font faillite aux États-Unis. Le 12 mars, les autorités annoncent que tous les déposants seront protégés et la Fed crée un programme de prêts aux banques. Les investisseurs craignaient une contagion à d'autres banques : les actions bancaires sont les plus touchées, le reste du marché suit plus ou moins.",
+    "sources": [
+      {
+        "label": "Fed, 12 mars 2023",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20230312a.htm"
+      },
+      {
+        "label": "Fed, 13 mars 2023",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/bcreg20230313a.htm"
+      }
+    ]
+  },
+  {
+    "id": "nvidia-ai-2023-05",
+    "start": "2023-05-24",
+    "end": "2023-07-31",
+    "title": "Nvidia annonce des ventes en forte hausse : l'engouement pour l'IA",
+    "appliesTo": [
+      "stock",
+      "etf"
+    ],
+    "milestones": [
+      {
+        "date": "2023-05-24",
+        "text": "Nvidia publie 7,19 milliards de dollars de ventes sur le trimestre et prévoit 11 milliards pour le suivant."
+      }
+    ],
+    "mechanism": "Les investisseurs y cherchent un signe de la demande pour l'intelligence artificielle, et regardent les grandes valeurs technologiques.",
+    "summary": "Le 24 mai 2023, Nvidia publie 7,19 milliards de dollars de ventes au trimestre et prévoit 11 milliards pour le suivant. Ce chiffre est souvent cité comme l'étincelle de l'engouement des investisseurs pour l'intelligence artificielle. Quelques grandes valeurs technologiques tirent alors les indices vers le haut.",
+    "sources": [
+      {
+        "label": "Nvidia, résultats du 24 mai 2023",
+        "url": "https://nvidianews.nvidia.com/news/nvidia-announces-financial-results-for-first-quarter-fiscal-2024"
+      }
+    ]
+  },
+  {
+    "id": "btc-etf-2024-01",
+    "start": "2024-01-10",
+    "end": "2024-03-31",
+    "title": "Les ETF bitcoin sont autorisés aux États-Unis",
+    "appliesTo": [
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2024-01-10",
+        "text": "Le régulateur américain (SEC) autorise la cotation d'ETF qui détiennent directement du bitcoin."
+      }
+    ],
+    "mechanism": "Les investisseurs peuvent acheter du bitcoin depuis un compte-titres classique : la demande peut s'élargir.",
+    "summary": "Le 10 janvier 2024, le régulateur américain (SEC) autorise la cotation d'ETF qui détiennent directement du bitcoin. Il précise qu'il n'approuve pas le bitcoin lui-même. Les investisseurs peuvent désormais en acheter depuis un compte-titres classique, ce qui élargit la demande.",
+    "sources": [
+      {
+        "label": "SEC, déclaration du 10 janvier 2024",
+        "url": "https://www.sec.gov/newsroom/speeches-statements/gensler-statement-spot-bitcoin-011023"
+      }
+    ]
+  },
+  {
+    "id": "selloff-2024-08",
+    "start": "2024-08-02",
+    "end": "2024-08-31",
+    "title": "Forte chute mondiale du 5 août 2024",
+    "appliesTo": [
+      "stock",
+      "etf",
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2024-08-02",
+        "text": "Chiffres de l'emploi américain décevants : 114 000 emplois créés contre 175 000 attendus, chômage à 4,3 %."
+      },
+      {
+        "date": "2024-08-05",
+        "text": "Les bourses chutent partout dans le monde."
+      }
+    ],
+    "mechanism": "Plusieurs craintes se cumulent : une récession, des résultats d'entreprises jugés décevants, des tensions au Moyen-Orient, et le dénouement de placements financés en yens. Les ventes automatiques de fonds amplifient le mouvement.",
+    "summary": "Le 5 août 2024, les bourses chutent partout. Plusieurs causes se cumulent : des chiffres de l'emploi américain décevants qui font craindre une récession, des résultats d'entreprises jugés décevants alors que les attentes étaient très hautes, des tensions au Moyen-Orient, et le dénouement de placements financés en yens après la hausse des taux au Japon. Les ventes automatiques de fonds ont amplifié le mouvement.",
+    "sources": [
+      {
+        "label": "Fortune, 5 août 2024",
+        "url": "https://fortune.com/2024/08/05/5-reasons-stocks-down-global-stock-market-rout/"
+      }
+    ]
+  },
+  {
+    "id": "fed-cut-2024-09",
+    "start": "2024-09-18",
+    "end": "2024-12-31",
+    "title": "La Fed baisse ses taux pour la première fois depuis longtemps",
+    "appliesTo": [
+      "stock",
+      "etf",
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2024-09-18",
+        "text": "La Fed baisse son taux directeur de 0,50 point, à 4,75-5 %."
+      }
+    ],
+    "mechanism": "Un crédit moins cher et des placements sans risque moins rémunérateurs sont plutôt favorables aux actions.",
+    "summary": "Le 18 septembre 2024, la Fed baisse son taux directeur de 0,50 point, à 4,75-5 %. Un crédit moins cher et des placements sans risque moins rémunérateurs sont plutôt favorables aux actions : les investisseurs y voient un signal.",
+    "sources": [
+      {
+        "label": "Fed, 18 septembre 2024",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20240918a.htm"
+      }
+    ]
+  },
+  {
+    "id": "tariffs-2025-04",
+    "start": "2025-04-02",
+    "end": "2025-05-15",
+    "title": "Droits de douane américains, puis pause de 90 jours",
+    "appliesTo": [
+      "stock",
+      "etf",
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2025-04-02",
+        "text": "Les États-Unis annoncent un droit de douane de base de 10 % sur presque toutes les importations, avec des taux plus élevés par pays à partir du 9 avril."
+      },
+      {
+        "date": "2025-04-09",
+        "text": "Les taux plus élevés sont suspendus 90 jours pour la plupart des pays, mais ceux sur la Chine montent à 125 %."
+      }
+    ],
+    "mechanism": "Des droits de douane renchérissent les échanges et les annonces changent d'un jour à l'autre : les prix suivent ces changements.",
+    "summary": "Le 2 avril 2025, les États-Unis annoncent un droit de douane de base de 10 % sur les importations de presque tous les pays, avec des taux plus élevés par pays. Le 9 avril, les taux plus élevés sont suspendus 90 jours pour la plupart des pays, mais ceux sur la Chine montent à 125 %. Les marchés ont fortement baissé puis rebondi : les annonces changeaient d'un jour à l'autre, et les prix suivent ces changements.",
+    "sources": [
+      {
+        "label": "Maison-Blanche, décret du 2 avril 2025",
+        "url": "https://www.whitehouse.gov/presidential-actions/2025/04/regulating-imports-with-a-reciprocal-tariff-to-rectify-trade-practices-that-contribute-to-large-and-persistent-annual-united-states-goods-trade-deficits/"
+      },
+      {
+        "label": "Maison-Blanche, décret du 9 avril 2025",
+        "url": "https://www.whitehouse.gov/presidential-actions/2025/04/modifying-reciprocal-tariff-rates-to-reflect-trading-partner-retaliation-and-alignment/"
+      }
+    ]
+  },
+  {
+    "id": "fed-cut-2025-09",
+    "start": "2025-09-17",
+    "end": "2025-12-31",
+    "title": "Nouvelle baisse des taux de la Fed",
+    "appliesTo": [
+      "stock",
+      "etf",
+      "crypto"
+    ],
+    "milestones": [
+      {
+        "date": "2025-09-17",
+        "text": "La Fed baisse son taux directeur de 0,25 point, à 4-4,25 %."
+      }
+    ],
+    "mechanism": "Les marchés réagissent autant à la surprise qu'à la décision : une baisse déjà attendue change peu les prix.",
+    "summary": "Le 17 septembre 2025, la Fed baisse son taux directeur de 0,25 point, à 4-4,25 %. Comme à chaque décision de taux, les marchés réagissent autant à la surprise qu'à la décision : une baisse déjà attendue change peu les prix.",
+    "sources": [
+      {
+        "label": "Fed, 17 septembre 2025",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm"
+      }
+    ]
+  }
+]

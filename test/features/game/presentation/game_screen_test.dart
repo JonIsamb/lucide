@@ -3,16 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide/core/theme/app_theme.dart';
+import 'package:lucide/features/catalog/domain/instrument.dart';
 import 'package:lucide/features/game/data/game_repository.dart';
-import 'package:lucide/features/game/domain/earnings_hint.dart';
+import 'package:lucide/features/game/domain/earnings_announcement.dart';
 import 'package:lucide/features/game/domain/game_round.dart';
+import 'package:lucide/features/game/domain/market_event.dart';
 import 'package:lucide/features/game/presentation/game_screen.dart';
 
 import '../../../helpers.dart';
 
 /// 26 visible weeks going from 100 to 106, then 4 hidden weeks ending
 /// 6,2 % lower (the example of the mockup) or 5 % higher.
-GameRound round({required bool rises, List<EarningsHint> hints = const []}) {
+GameRound round({
+  required bool rises,
+  List<MarketEvent> events = const [],
+  List<MarketEvent> contextEvents = const [],
+  List<EarningsAnnouncement> earnings = const [],
+}) {
   final history = [for (var i = 0; i < 26; i++) 100 + i * 6 / 25];
   final last = rises ? 106 * 1.05 : 106 * (1 - 0.062);
   return GameRound(
@@ -25,9 +32,30 @@ GameRound round({required bool rises, List<EarningsHint> hints = const []}) {
     future: [106, 105, 104, last],
     start: DateTime.utc(2019, 3, 4),
     end: DateTime.utc(2019, 10, 21),
-    hints: hints,
+    events: events,
+    contextEvents: contextEvents,
+    earnings: earnings,
   );
 }
+
+/// An event with a fact before the hidden weeks (round start: 4 March 2019,
+/// hidden weeks from 9 September 2019) and one inside them.
+final fedEvent = MarketEvent(
+  id: 'fed',
+  start: DateTime.utc(2019, 6, 3),
+  end: DateTime.utc(2019, 10, 1),
+  title: 'La Fed change de cap',
+  milestones: [
+    Milestone(day: DateTime.utc(2019, 6, 3), text: 'Elle baisse son taux.'),
+    Milestone(day: DateTime.utc(2019, 9, 20), text: 'Elle le baisse encore.'),
+  ],
+  mechanism: 'Un crédit moins cher aide plutôt les actions.',
+  summary: 'La banque centrale américaine modifie son taux.',
+  appliesTo: const {InstrumentType.stock},
+  sources: const [
+    EventSource(label: 'Fed', url: 'https://www.federalreserve.gov/'),
+  ],
+);
 
 /// Finds a text whatever kind of space it uses: percentages are written
 /// with a no-break space before "%".
@@ -48,11 +76,10 @@ void main() {
     Size? size,
   }) async {
     wentHome = false;
-    if (size != null) {
-      tester.view.physicalSize = size;
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-    }
+    // Tall by default: the context card pushes the answers down the page.
+    tester.view.physicalSize = size ?? const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -68,76 +95,89 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('a round shows the question, both answers and no asset name', (
+  testWidgets('a round names the company and asks the question', (
     tester,
   ) async {
     await pumpGame(tester, [round(rises: false), round(rises: true)]);
 
     expect(find.text('Manche 1 sur 2'), findsOneWidget);
+    expect(find.text('Coca-Cola'), findsOneWidget);
+    expect(find.text('Action, KO'), findsOneWidget);
     expect(
-      find.text('Un actif mystère, 26 semaines, ramené à 100 au départ'),
+      find.text('Le fabricant de sodas le plus connu au monde.'),
       findsOneWidget,
     );
     expect(
-      find.text('Dans 4 semaines, le cours sera plus haut ou plus bas ?'),
+      find.text('Coca-Cola, de mars à août 2019, ramené à 100 au départ'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Dans 4 semaines, le cours de Coca-Cola sera plus haut ou plus bas ?',
+      ),
       findsOneWidget,
     );
     expect(find.text('Plus haut'), findsOneWidget);
     expect(find.text('Plus bas'), findsOneWidget);
-    expect(find.textContaining('Coca-Cola'), findsNothing);
+    expect(find.text('Voir un indice'), findsNothing);
   });
 
-  testWidgets('the hint lists the announcements of the visible weeks', (
+  testWidgets('before the bet: the period, the market and the events known', (
     tester,
   ) async {
     await pumpGame(tester, [
       round(
         rises: false,
-        hints: const [
-          EarningsHint(weeksAgo: 14, surprisePercent: -3.09),
-          EarningsHint(weeksAgo: 1, surprisePercent: 6.3),
-          EarningsHint(weeksAgo: 0, surprisePercent: 0),
+        events: [fedEvent],
+        contextEvents: [fedEvent],
+        earnings: [
+          EarningsAnnouncement(day: DateTime.utc(2019, 7, 18)),
+          // After the visible weeks: kept for the explanation.
+          EarningsAnnouncement(day: DateTime.utc(2019, 9, 19)),
         ],
       ),
     ]);
-    expect(find.textContaining('Indice :'), findsNothing);
 
-    await tester.tap(find.text('Voir un indice'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Voir un indice'), findsNothing);
-    expect(find.text('Indice : les annonces de résultats'), findsOneWidget);
+    expect(find.text('Une période calme'), findsOneWidget);
+    expect(find.text('Ce qui se passait dans le monde'), findsOneWidget);
+    expect(find.text('La Fed change de cap'), findsOneWidget);
     expect(
-      findPlainText(
-        'Il y a 14 semaines : résultats moins bons que prévu (−3,1 %).',
-      ),
-      findsOneWidget,
+      find.textContaining('3 juin 2019 : Elle baisse son taux.'),
+      findsOne,
     );
     expect(
-      findPlainText(
-        'Il y a 1 semaine : résultats meilleurs que prévu (+6,3 %).',
-      ),
+      find.text('Un crédit moins cher aide plutôt les actions.'),
       findsOneWidget,
     );
-    expect(
-      find.text('Cette semaine : résultats conformes aux attentes.'),
-      findsOneWidget,
-    );
-    // The hint never names the asset.
-    expect(find.textContaining('Coca-Cola'), findsNothing);
-    expect(find.text('Plus haut'), findsOneWidget);
+    expect(find.textContaining('Comment réagir dans ce marché'), findsOne);
+    // The announcement of the visible weeks is listed, not the later one.
+    expect(find.text('Résultats de l\'entreprise'), findsOneWidget);
+    expect(find.text('18 juil. 2019 : résultats publiés.'), findsOneWidget);
+    expect(find.textContaining('19 sept. 2019'), findsNothing);
   });
 
-  testWidgets('the hint says so when no announcement is known', (tester) async {
-    await pumpGame(tester, [round(rises: false)]);
+  testWidgets('nothing from the hidden weeks leaks before the bet', (
+    tester,
+  ) async {
+    await pumpGame(tester, [
+      round(rises: false, events: [fedEvent], contextEvents: [fedEvent]),
+    ]);
 
-    await tester.tap(find.text('Voir un indice'));
-    await tester.pumpAndSettle();
-
+    // The fact dated inside the hidden weeks and the story of the event
+    // wait for the answer.
+    expect(find.textContaining('Elle le baisse encore'), findsNothing);
     expect(
-      find.text('Aucune annonce de résultats connue sur ces semaines.'),
-      findsOneWidget,
+      find.text('La banque centrale américaine modifie son taux.'),
+      findsNothing,
     );
+    expect(find.text('Expliquer la réponse'), findsNothing);
+  });
+
+  testWidgets('the context says so when no event was going on', (tester) async {
+    await pumpGame(tester, [round(rises: true)]);
+
+    expect(find.textContaining('Aucun événement majeur'), findsOneWidget);
+    expect(find.text('Résultats de l\'entreprise'), findsNothing);
   });
 
   testWidgets('a wrong answer reveals the asset, the period and the loss', (
@@ -162,7 +202,6 @@ void main() {
 
   testWidgets('the reveal gives the context of the real asset', (tester) async {
     await pumpGame(tester, [round(rises: false), round(rises: true)]);
-    expect(find.textContaining('fabricant de sodas'), findsNothing);
 
     await tester.tap(find.text('Plus bas'));
     await tester.pumpAndSettle();
@@ -178,6 +217,118 @@ void main() {
     expect(find.text('Les 4 semaines suivantes'), findsOneWidget);
     expect(findPlainText('−6,2 %'), findsOneWidget);
     expect(find.text('Voir la fiche de cet actif'), findsOneWidget);
+  });
+
+  testWidgets('the explanation only appears when the player asks for it', (
+    tester,
+  ) async {
+    await pumpGame(tester, [
+      round(rises: false, events: [fedEvent]),
+    ]);
+    // No button before the answer, and no story of the events.
+    expect(find.text('Expliquer la réponse'), findsNothing);
+    expect(
+      find.text('La banque centrale américaine modifie son taux.'),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('Plus bas'));
+    await tester.pumpAndSettle();
+    // Revealed, but still not explained.
+    expect(find.text('Expliquer la réponse'), findsOneWidget);
+    expect(find.text('La Fed change de cap'), findsNothing);
+
+    await tester.ensureVisible(find.text('Expliquer la réponse'));
+    await tester.tap(find.text('Expliquer la réponse'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Expliquer la réponse'), findsNothing);
+    expect(find.text('La Fed change de cap'), findsOneWidget);
+    expect(
+      find.text('La banque centrale américaine modifie son taux.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Fed : https://www.federalreserve.gov/', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.text('Pourquoi le cours a bougé'), findsOneWidget);
+    expect(find.text('Comment réagir'), findsOneWidget);
+    expect(
+      find.textContaining('pas un conseil en investissement'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('without any known event, the card says so and stays honest', (
+    tester,
+  ) async {
+    await pumpGame(tester, [round(rises: true)]);
+    await tester.tap(find.text('Plus haut'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Expliquer la réponse'));
+    await tester.tap(find.text('Expliquer la réponse'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Aucun événement de notre liste'), findsOne);
+    // The numbers are still analyzed: a steady climb of 6 % is calm.
+    expect(find.text('Une période calme'), findsOneWidget);
+  });
+
+  testWidgets('earnings of the company are listed in the explanation', (
+    tester,
+  ) async {
+    await pumpGame(tester, [
+      round(
+        rises: true,
+        earnings: [
+          EarningsAnnouncement(
+            day: DateTime.utc(2019, 7, 18),
+            surprisePercent: 4.5,
+          ),
+        ],
+      ),
+    ]);
+    await tester.tap(find.text('Plus haut'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Expliquer la réponse'));
+    await tester.tap(find.text('Expliquer la réponse'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Résultats de l\'entreprise'), findsOneWidget);
+    expect(
+      findPlainText('18 juil. 2019 : résultats meilleurs que prévu (+4,5 %).'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the explanation is asked again for each round', (tester) async {
+    await pumpGame(tester, [round(rises: true), round(rises: true)]);
+    await tester.tap(find.text('Plus haut'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Expliquer la réponse'));
+    await tester.tap(find.text('Expliquer la réponse'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Manche suivante'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Plus haut'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Expliquer la réponse'), findsOneWidget);
+  });
+
+  testWidgets('the explanation fits a small phone', (tester) async {
+    await pumpGame(tester, [
+      round(rises: false, events: [fedEvent, fedEvent]),
+    ], size: const Size(320, 640));
+    await tester.ensureVisible(find.text('Plus bas'));
+    await tester.tap(find.text('Plus bas'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Expliquer la réponse'));
+    await tester.tap(find.text('Expliquer la réponse'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('a full game ends on the score, then can be replayed', (
@@ -217,11 +368,6 @@ void main() {
     tester,
   ) async {
     await pumpGame(tester, [round(rises: false)], size: const Size(320, 568));
-    expect(tester.takeException(), isNull);
-
-    await tester.ensureVisible(find.text('Voir un indice'));
-    await tester.tap(find.text('Voir un indice'));
-    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
     // The answers are below the fold on such a small screen.

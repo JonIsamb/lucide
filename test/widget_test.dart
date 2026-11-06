@@ -69,6 +69,7 @@ void main() {
             GameRepository(
               catalog: catalog,
               loadEarningsJson: () async => earningsJson,
+              loadEventsJson: () async => '[]',
             ),
           ),
         ],
@@ -99,10 +100,8 @@ void main() {
     await settle(tester);
     expect(find.text('Manche 1 sur 10'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Voir un indice'));
-    await tester.tap(find.text('Voir un indice'));
-    await tester.pumpAndSettle();
-    expect(find.text('Indice : les annonces de résultats'), findsOneWidget);
+    // Before the answer, the company and the context are shown.
+    expect(find.text('Ce qui se passait dans le monde'), findsOneWidget);
   });
 
   testWidgets('the game explains itself when too few prices are stored', (

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -103,6 +104,30 @@ void main() {
       for (final announcements in bySymbol.values) {
         expect(announcements, isNotEmpty);
       }
+    });
+
+    test('every stock of the catalogue has its announcements', () {
+      final bySymbol = parseEarnings(
+        File('assets/earnings.json').readAsStringSync(),
+      );
+      final catalog =
+          jsonDecode(File('assets/catalog.json').readAsStringSync()) as List;
+      final stocks = [
+        for (final item in catalog)
+          if ((item as Map)['type'] == 'stock') item['symbol'] as String,
+      ];
+      expect(stocks, hasLength(17));
+      for (final symbol in stocks) {
+        expect(bySymbol[symbol], isNotEmpty, reason: symbol);
+      }
+      // No ETF nor crypto: they publish no quarterly results.
+      expect(bySymbol.keys.toSet().difference(stocks.toSet()), isEmpty);
+    });
+
+    test('no row of the file was dropped as unreadable', () {
+      final json = File('assets/earnings.json').readAsStringSync();
+      final parsed = parseEarnings(json).values.fold(0, (n, l) => n + l.length);
+      expect(parsed, (jsonDecode(json) as List).length);
     });
   });
 }

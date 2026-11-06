@@ -49,12 +49,23 @@ void main() {
       },
   ]);
 
-  GameRepository game({int seed = 1, Future<String> Function()? earnings}) =>
-      GameRepository(
-        catalog: catalog,
-        random: Random(seed),
-        loadEarningsJson: earnings ?? () async => earningsJson,
-      );
+  // One event in the winter 2025-2026, for stocks and ETFs only.
+  const eventsJson = '''
+[{"id":"winter","start":"2026-01-01","end":"2026-02-01","title":"T","summary":"S",
+  "mechanism":"M","milestones":[{"date":"2026-01-01","text":"t"}],
+  "appliesTo":["stock","etf"],
+  "sources":[{"label":"x","url":"https://example.org"}]}]''';
+
+  GameRepository game({
+    int seed = 1,
+    Future<String> Function()? earnings,
+    Future<String> Function()? events,
+  }) => GameRepository(
+    catalog: catalog,
+    random: Random(seed),
+    loadEarningsJson: earnings ?? () async => earningsJson,
+    loadEventsJson: events ?? () async => eventsJson,
+  );
 
   test('no price stored: no game', () async {
     expect(await game().drawGame(), isEmpty);
@@ -115,32 +126,41 @@ void main() {
 
     for (final round in await game().drawGame()) {
       if (round.asset.symbol == 'AAA') {
-        // One announcement per visible week, none from the hidden weeks.
-        expect(
-          [for (final h in round.hints) h.weeksAgo],
-          [for (var weeks = 25; weeks >= 0; weeks--) weeks],
-        );
+        // One announcement per week: 30 in the round, 26 known before the bet.
+        expect(round.earnings, hasLength(30));
+        expect(round.visibleEarnings, hasLength(26));
+        for (final announcement in round.visibleEarnings) {
+          expect(announcement.day.isBefore(round.hiddenStart), isTrue);
+        }
       } else {
-        expect(round.hints, isEmpty);
+        expect(round.earnings, isEmpty);
+        expect(round.visibleEarnings, isEmpty);
       }
     }
   });
 
-  test('an unreadable announcements file only removes the hints', () async {
-    api.series['AAA'] = weeklySeries([for (var i = 0; i < 200; i++) 80.0 + i]);
-    api.series['BBB'] = weeklySeries([for (var i = 0; i < 200; i++) 300.0 - i]);
-    await catalog.refreshSeries('AAA');
-    await catalog.refreshSeries('BBB');
+  test(
+    'an unreadable announcements file only removes the announcements',
+    () async {
+      api.series['AAA'] = weeklySeries([
+        for (var i = 0; i < 200; i++) 80.0 + i,
+      ]);
+      api.series['BBB'] = weeklySeries([
+        for (var i = 0; i < 200; i++) 300.0 - i,
+      ]);
+      await catalog.refreshSeries('AAA');
+      await catalog.refreshSeries('BBB');
 
-    for (final earnings in <Future<String> Function()>[
-      () async => 'not json',
-      () async => throw Exception('missing asset'),
-    ]) {
-      final rounds = await game(earnings: earnings).drawGame();
-      expect(rounds, hasLength(10));
-      expect(rounds.every((round) => round.hints.isEmpty), isTrue);
-    }
-  });
+      for (final earnings in <Future<String> Function()>[
+        () async => 'not json',
+        () async => throw Exception('missing asset'),
+      ]) {
+        final rounds = await game(earnings: earnings).drawGame();
+        expect(rounds, hasLength(10));
+        expect(rounds.every((round) => round.earnings.isEmpty), isTrue);
+      }
+    },
+  );
 
   test('the same seed draws the same game', () async {
     api.series['AAA'] = weeklySeries([for (var i = 0; i < 200; i++) 80.0 + i]);
@@ -155,5 +175,37 @@ void main() {
       [for (final r in again) '${r.asset.symbol} ${r.start}'],
       [for (final r in first) '${r.asset.symbol} ${r.start}'],
     );
+  });
+
+  test('rounds carry the events that overlap them, and all earnings', () async {
+    api.series['AAA'] = weeklySeries([for (var i = 0; i < 200; i++) 80.0 + i]);
+    await catalog.refreshSeries('AAA');
+    final event = DateTime.utc(2026, 1, 1);
+
+    for (final round in await game().drawGame()) {
+      final overlaps =
+          !round.end.isBefore(event) &&
+          !round.start.isAfter(DateTime.utc(2026, 2, 1));
+      expect(round.events.map((e) => e.id), overlaps ? ['winter'] : isEmpty);
+      // Earnings every week: the 30 weeks of the round, hidden ones too.
+      expect(round.earnings, hasLength(30));
+    }
+  });
+
+  test('an unreadable events file only removes the explanation', () async {
+    api.series['AAA'] = weeklySeries([for (var i = 0; i < 200; i++) 80.0 + i]);
+    api.series['BBB'] = weeklySeries([for (var i = 0; i < 200; i++) 300.0 - i]);
+    await catalog.refreshSeries('AAA');
+    await catalog.refreshSeries('BBB');
+
+    for (final events in <Future<String> Function()>[
+      () async => 'not json',
+      () async => throw Exception('missing asset'),
+      () async => throw StateError('asset bundle error'),
+    ]) {
+      final rounds = await game(events: events).drawGame();
+      expect(rounds, hasLength(10));
+      expect(rounds.every((r) => r.events.isEmpty), isTrue);
+    }
   });
 }
