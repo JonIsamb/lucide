@@ -140,7 +140,9 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Alternative écartée** : expliquer la période par l'actualité (« krach de mars 2020 »…).
 - **Justification** : aucune source d'actualité n'est dans l'app ; un commentaire rédigé à la main serait inventé. Le contexte repose uniquement sur des données déjà en base, donc disponible hors connexion.
 
-## Jeu « Teste ton intuition » : mode indice
+## Jeu « Teste ton intuition » : mode indice (remplacé)
+
+> **Remplacé** par « Contexte avant la réponse », plus bas : le mode indice, `earningsHints`, `GameState.hintRounds` et `GameController.showHint()` n'existent plus. Les annonces de résultats sont affichées dans la carte de contexte, avec leur date et le nom de l'entreprise.
 
 ### Indice : les annonces de résultats de la période affichée
 
@@ -233,3 +235,50 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : dépendance `liquid_glass_renderer` (version préliminaire `1.0.0-dev.2`) pour la barre du bas. Flutter GPU activé dans `Info.plist` (iOS, macOS) et `AndroidManifest.xml`. La barre flotte au dessus des pages dans un `Stack` de `HomeShell`, qui réduit d'autant le `MediaQuery.padding` des pages.
 - **Alternative écartée** : `BackdropFilter` + dégradé translucide (sans dépendance, mais sans réfraction) ; `NavigationBar` Material.
 - **Justification** : seul le rendu par shader reproduit la réfraction du verre iOS. Le paquet bascule seul sur un verre dépoli (`FakeGlass`) quand Flutter GPU est indisponible : la barre reste utilisable partout. Limite : paquet en préversion, à valider sur appareil réel avant la soutenance.
+
+### Formulaire de simulation guidé
+
+- **Décision** : le formulaire suit trois étapes numérotées (actif, montant, période), chacune avec une phrase d'aide en langage courant. Montants rapides (puces) et durées rapides (1, 3, 5 ans, tout l'historique) en plus de la saisie libre et des sélecteurs de date. Enveloppe et frais sont rangés dans « Options (facultatif) », repliés par défaut, avec un résumé (« Compte titres · sans frais ») et des valeurs par défaut sûres. Une ligne indique la prochaine étape à remplir.
+- **Alternative écartée** : bouton « Calculer » désactivé tant que le formulaire est incomplet ; assistant en plusieurs écrans.
+- **Justification** : un débutant ne sait pas quoi taper pour les frais ou l'enveloppe. Les valeurs par défaut permettent de calculer en trois gestes. Le bouton reste actif pour que le message d'erreur explique ce qui manque, plutôt qu'un bouton grisé sans raison. Seule la présentation change : le contrôleur et le domaine sont intacts.
+
+## Jeu : « Expliquer la réponse »
+
+### Explication à la demande, en trois parties
+
+- **Décision** : après la révélation d'une manche, un bouton « Expliquer la réponse » ouvre une carte (état `explainedRounds` du `GameController`, comme le faisait l'ancien état de l'indice). Elle contient : (1) le régime de la période (calme, agitée, crise) calculé par `analyzeWindow` dans `domain/window_regime.dart` sur les 30 semaines ; (2) les événements réels de `assets/market_events.json` qui recoupent la période ; (3) des conseils de comportement adaptés au régime.
+- **Alternative écartée** : afficher l'explication automatiquement à la révélation ; générer une cause à partir des seuls chiffres.
+- **Justification** : l'utilisateur veut choisir quand lire. Les chiffres disent comment le marché a bougé, jamais pourquoi : pour le pourquoi, il faut des faits datés et sourcés. Les cas calmes et agités sont expliqués au même titre que les crises, pour ne pas laisser croire que seule une crise justifie un mouvement.
+
+### Régime de la période : seuils éditoriaux
+
+- **Décision** : crise si la baisse maximale atteint 20 %, agitée si elle atteint 10 % ou si la volatilité annualisée (rendements hebdomadaires, √52) atteint 30 %, calme sinon. Pour une crypto, les trois seuils sont doublés. Tendance « stable » dans ±5 %. Constantes nommées dans `window_regime.dart`, testées aux bornes.
+- **Alternative écartée** : seuils relatifs à l'historique de chaque actif ; un seul jeu de seuils pour tous les actifs.
+- **Justification** : −10 % (correction) et −20 % (marché baissier) sont les conventions courantes ; la volatilité de 30 % et le doublement pour les cryptos sont des choix pédagogiques, notés dans `docs/limitations.md`. Un seuil relatif serait plus juste mais plus difficile à expliquer à un jury.
+
+### Événements : fichier embarqué, sourcé, hors connexion
+
+- **Décision** : `assets/market_events.json`, lu comme `earnings.json` (DTO tolérant, ligne invalide ignorée, fichier illisible = pas d'explication mais le jeu continue). Chaque événement porte période, résumé, types d'actifs concernés et au moins une source (sans source, il est écarté). Un tirage attache à chaque manche au plus 3 événements, ceux qui couvrent le plus de jours. Les résultats d'entreprise viennent de `earnings.json`, annonces masquées comprises, car l'explication n'arrive qu'après la réponse.
+- **Alternative écartée** : récupérer l'actualité par API (hors connexion impossible, plan payant) ; écrire les événements de mémoire.
+- **Justification** : exigence de démonstration hors connexion et règle « ne jamais inventer ». Chaque fait (taux, dates, montants) a été relu sur la page officielle citée (Fed, SEC, OMS, Maison-Blanche, communiqué Nvidia) ou, à défaut, sur Wikipédia ou la presse, indiqué dans la source. Aucune nouvelle dépendance : pas d'ouverture de lien, l'adresse s'affiche en texte sélectionnable.
+
+### Dates de résultats : SEC EDGAR, gratuit
+
+- **Décision** : `tool/fetch_sec_earnings.py` récupère, pour les 16 actions du catalogue autres qu'Apple, les dépôts 8-K contenant l'item 2.02 (résultats) auprès d'EDGAR (`data.sec.gov`), depuis octobre 2021, et les écrit dans `assets/earnings.json` (champ `source`). Les lignes d'Apple, qui ont l'écart avec les attentes (Twelve Data), sont conservées. Le script s'exécute à la main, hors de l'app : l'app ne lit toujours que le fichier embarqué.
+- **Alternative écartée** : plan Twelve Data Grow (payant, seule source gratuite de l'écart avec les attentes) ; dates saisies de mémoire (interdit).
+- **Justification** : contrainte « tout reste gratuit ». EDGAR est officiel, sans clé ni compte ; il exige seulement un contact dans le `User-Agent` et moins de 10 requêtes par seconde (0,25 s d'attente). Le contact est passé en argument et n'est jamais écrit dans le dépôt. Sans écart, la carte dit « résultats publiés le … » : `surprise_prc` est facultatif dans le DTO.
+
+## Jeu : contexte avant la réponse
+
+### L'actif n'est plus mystère
+
+- **Décision** : avant de parier, le joueur voit le nom de l'entreprise, son type, sa description, la période des 26 semaines affichées, le régime de ces semaines (calme, agitée, crise, calculé sur les semaines visibles seulement), les événements du monde en cours, les annonces de résultats déjà publiées et des conseils pour ce type de marché (`ContextCard`). Le bouton « Voir un indice » et le mode indice sont supprimés.
+- **Alternative écartée** : garder l'actif anonyme et ne montrer que le contexte du marché ; garder l'indice à côté de la carte.
+- **Justification** : demande explicite de laisser au joueur une vraie chance de bien choisir. L'indice devenait redondant : les annonces sont maintenant listées avec leur date. Cela change le cahier des charges (section 7.3 : « sans nom ni dates »). Le score reste comparé au hasard et à « toujours hausse », car 4 semaines restent imprévisibles : le contexte aide à réfléchir, il ne garantit rien, et la carte le dit.
+
+### Ne rien révéler des semaines masquées
+
+- **Décision** : chaque événement a des jalons datés (`milestones`) et un `mechanism` (comment les marchés lisent ce type d'événement, sans dire ce que le cours a fait ensuite). Avant la réponse, la carte montre les jalons datés avant le premier jour masqué (`GameRound.hiddenStart`, `milestonesBefore`) et le mécanisme, jamais le récit complet (`summary`, réservé à « Expliquer la réponse »). `GameRound.contextEvents` ne contient que les événements commencés avant la première semaine masquée ; `visibleEarnings` que les annonces antérieures. `drawRounds` les calcule en domaine, testés aux bornes (jour de début de la semaine masquée exclu).
+- **Alternative écartée** : filtrer dans le Widget ; ne pas afficher les événements qui dépassent la période visible.
+- **Justification** : un événement comme celui des droits de douane d'avril 2025 s'étend sur la période visible et la période masquée. Découper en jalons datés permet de montrer ce qui était connu sans donner la réponse. Le filtre est dans le domaine, donc testable sans écran. Les dates des événements du fichier ont été avancées au premier jalon vérifié (SVB : 12 mars 2023, chute d'août 2024 : 2 août).
+

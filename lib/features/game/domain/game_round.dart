@@ -1,5 +1,6 @@
 import '../../catalog/domain/instrument.dart';
-import 'earnings_hint.dart';
+import 'earnings_announcement.dart';
+import 'market_event.dart';
 
 /// The player's bet on the 4 hidden weeks.
 enum Guess { higher, lower }
@@ -10,14 +11,18 @@ enum Guess { higher, lower }
 /// Prices are rebased so the first visible week equals 100: the player
 /// cannot recognise the asset from its price level.
 class GameRound {
-  const GameRound({
+  GameRound({
     required this.asset,
     required this.history,
     required this.future,
     required this.start,
     required this.end,
-    this.hints = const [],
-  });
+    DateTime? visibleEnd,
+    this.earnings = const [],
+    this.events = const [],
+    this.contextEvents = const [],
+  }) : visibleEnd =
+           visibleEnd ?? start.add(Duration(days: 7 * (history.length - 1)));
 
   /// The real asset behind the curve. Shown only once the round is
   /// revealed: its name, its type and its description give the context.
@@ -35,9 +40,31 @@ class GameRound {
   /// Last hidden week.
   final DateTime end;
 
-  /// What the hint mode can say: the earnings announcements published
-  /// during the visible weeks, oldest first. Empty when none is known.
-  final List<EarningsHint> hints;
+  /// First day of the last visible week. Everything dated before the
+  /// following week is known to the player when he bets.
+  final DateTime visibleEnd;
+
+  /// First day of the hidden weeks: nothing dated from then on may be
+  /// shown before the answer.
+  DateTime get hiddenStart => visibleEnd.add(const Duration(days: 7));
+
+  /// Every earnings announcement of the 30 weeks, hidden ones included.
+  final List<EarningsAnnouncement> earnings;
+
+  /// The announcements the player may see before he bets: those of the
+  /// visible weeks.
+  List<EarningsAnnouncement> get visibleEarnings => [
+    for (final announcement in earnings)
+      if (announcement.day.isBefore(hiddenStart)) announcement,
+  ];
+
+  /// The real events that overlap the 30 weeks and concern this kind of
+  /// asset. Shown after the answer, on request.
+  final List<MarketEvent> events;
+
+  /// The real events that began during the visible weeks (at most
+  /// [maxEventsPerRound]). Shown before the answer, cut at [hiddenStart].
+  final List<MarketEvent> contextEvents;
 }
 
 /// Numbers shown under the final score. They will come from the saved
