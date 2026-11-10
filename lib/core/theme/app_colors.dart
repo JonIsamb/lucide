@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
 
 /// The Lucide palette. Every color is named by its role, not its hue, so
-/// widgets never hard-code hex values.
+/// widgets never hard-code hex values. The greens, the background and the
+/// text color are those of the brand (app icon and splash screen).
 ///
 /// Text pairs checked for the 4.5:1 contrast ratio (WCAG AA):
-/// ink, muted, rise and fall on background and surface; white on primary
-/// and ink; primary on sand.
+/// ink, muted, rise, fall and primary on background and surface; white on
+/// primary and ink.
 abstract final class AppColors {
-  /// Bordeaux: main buttons, active tab, filled star, sort button, links.
+  /// Emerald dark (brand): main buttons, active tab, filled star, sort
+  /// button, links. Also the icon and splash screen background.
   static const primary = Color(0xFF047857);
 
   /// Logo fallback, light tints, active tab indicator.
   static const lightGreen = Color(0xFFD7F5E8);
 
-  static const background = Color(0xFFF8F3F1);
+  /// Mist (brand): the app background.
+  static const background = Color(0xFFF2F5F3);
   static const surface = Color(0xFFFFFFFF);
 
-  /// Main text.
-  static const ink = Color(0xFF1F1A17);
+  /// Main text (brand ink, a very dark green).
+  static const ink = Color(0xFF13221C);
 
   /// Secondary text (subtitles, labels).
   static const muted = Color(0xFF6B605A);

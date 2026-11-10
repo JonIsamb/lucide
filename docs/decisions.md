@@ -352,3 +352,9 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : `web: false` dans `flutter_native_splash.yaml`.
 - **Alternative écartée** : garder l'écran de démarrage web que le paquet génère par défaut quand le dossier `web/` existe.
 - **Justification** : l'app vise Android et iOS ; ne pas modifier `web/index.html` sans besoin.
+
+### Thème aligné sur la marque
+
+- **Décision** : `AppColors.background` passe de `#F8F3F1` (beige) à `#F2F5F3` (mist) et `AppColors.ink` de `#1F1A17` (brun très foncé) à `#13221C` (vert très foncé), les couleurs de la marque. Le vert principal, la menthe pâle et la menthe vive étaient déjà les siens.
+- **Alternative écartée** : garder le fond beige et le texte brun.
+- **Justification** : l'app, l'icône et l'écran de démarrage forment la même famille de verts. Les deux couleurs ne sont définies qu'une fois, dans `AppColors` : aucun Widget n'a changé. Contrastes recalculés (WCAG AA, 4,5:1 minimum) : texte 15,0 sur le fond, texte secondaire 5,6, hausse 7,4, baisse 5,4, vert principal 5,0.
