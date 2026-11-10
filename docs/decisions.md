@@ -282,6 +282,13 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Alternative écartée** : filtrer dans le Widget ; ne pas afficher les événements qui dépassent la période visible.
 - **Justification** : un événement comme celui des droits de douane d'avril 2025 s'étend sur la période visible et la période masquée. Découper en jalons datés permet de montrer ce qui était connu sans donner la réponse. Le filtre est dans le domaine, donc testable sans écran. Les dates des événements du fichier ont été avancées au premier jalon vérifié (SVB : 12 mars 2023, chute d'août 2024 : 2 août).
 
+
+### Carte de contexte repliée par défaut
+
+- **Décision** : avant la réponse, `ContextCard` ne montre que le type, le symbole et le nom de l'actif, avec « Voir le contexte » sur la même ligne. La période, la description, le régime, les événements, les résultats et les conseils se déplient sur demande. La légende du graphique, juste au-dessus, donne déjà la période. L'état replié ou déplié est purement visuel : il vit dans le `State` du Widget, pas dans le `GameController`. La carte reçoit une clé par manche, donc elle repart repliée à chaque manche.
+- **Alternative écartée** : carte toujours dépliée ; boutons de réponse fixés en bas de l'écran ; carte repliée qui garde la ligne de période et un bouton sur sa propre ligne (les boutons restaient en partie sous la barre de navigation).
+- **Justification** : dépliée, la carte poussait la question et les boutons « Plus haut » / « Plus bas » sous l'écran : le joueur ne voyait pas comment répondre. Testé sur 412 × 770 (un téléphone de 412 × 915 moins la barre d'état et la barre de navigation flottante) : les deux boutons sont visibles sans défiler, et le test échoue si la carte est dépliée par défaut. Sur un téléphone de 320 de large, le libellé du bouton passe sur deux lignes au lieu de déborder.
+
 ## Accueil : données réelles
 
 ### Parties terminées enregistrées (table `game_sessions`, schéma v3)

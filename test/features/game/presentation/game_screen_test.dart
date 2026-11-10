@@ -95,6 +95,12 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Opens the folded context card of the round on screen.
+  Future<void> unfoldContext(WidgetTester tester) async {
+    await tester.tap(find.text('Voir le contexte'));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('a round names the company and asks the question', (
     tester,
   ) async {
@@ -103,10 +109,6 @@ void main() {
     expect(find.text('Manche 1 sur 2'), findsOneWidget);
     expect(find.text('Coca-Cola'), findsOneWidget);
     expect(find.text('Action, KO'), findsOneWidget);
-    expect(
-      find.text('Le fabricant de sodas le plus connu au monde.'),
-      findsOneWidget,
-    );
     expect(
       find.text('Coca-Cola, de mars à août 2019, ramené à 100 au départ'),
       findsOneWidget,
@@ -138,6 +140,12 @@ void main() {
       ),
     ]);
 
+    await unfoldContext(tester);
+
+    expect(
+      find.text('Le fabricant de sodas le plus connu au monde.'),
+      findsOneWidget,
+    );
     expect(find.text('Une période calme'), findsOneWidget);
     expect(find.text('Ce qui se passait dans le monde'), findsOneWidget);
     expect(find.text('La Fed change de cap'), findsOneWidget);
@@ -162,6 +170,7 @@ void main() {
     await pumpGame(tester, [
       round(rises: false, events: [fedEvent], contextEvents: [fedEvent]),
     ]);
+    await unfoldContext(tester);
 
     // The fact dated inside the hidden weeks and the story of the event
     // wait for the answer.
@@ -175,9 +184,88 @@ void main() {
 
   testWidgets('the context says so when no event was going on', (tester) async {
     await pumpGame(tester, [round(rises: true)]);
+    await unfoldContext(tester);
 
     expect(find.textContaining('Aucun événement majeur'), findsOneWidget);
     expect(find.text('Résultats de l\'entreprise'), findsNothing);
+  });
+
+  group('context card', () {
+    testWidgets('folded by default: the company only', (tester) async {
+      await pumpGame(tester, [
+        round(rises: false, events: [fedEvent], contextEvents: [fedEvent]),
+      ]);
+
+      expect(find.text('Action, KO'), findsOneWidget);
+      expect(find.text('Voir le contexte'), findsOneWidget);
+      // The chart caption already gives the period.
+      expect(find.textContaining('Les 26 semaines affichées'), findsNothing);
+      expect(
+        find.text('Le fabricant de sodas le plus connu au monde.'),
+        findsNothing,
+      );
+      expect(find.text('Ce qui se passait dans le monde'), findsNothing);
+      expect(find.text('La Fed change de cap'), findsNothing);
+    });
+
+    testWidgets('unfolds and folds on demand', (tester) async {
+      await pumpGame(tester, [round(rises: false)]);
+
+      await unfoldContext(tester);
+      expect(find.text('Ce qui se passait dans le monde'), findsOneWidget);
+      expect(
+        find.text(
+          'Les 26 semaines affichées couvrent la période de mars à août '
+          '2019 : +6,0\u00a0% sur la période.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Masquer'), findsOneWidget);
+
+      await tester.tap(find.text('Masquer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ce qui se passait dans le monde'), findsNothing);
+      expect(find.text('Voir le contexte'), findsOneWidget);
+    });
+
+    testWidgets('folded again on the next round', (tester) async {
+      await pumpGame(tester, [round(rises: false), round(rises: true)]);
+
+      await unfoldContext(tester);
+      await tester.tap(find.text('Plus bas'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Manche suivante'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Manche 2 sur 2'), findsOneWidget);
+      expect(find.text('Voir le contexte'), findsOneWidget);
+      expect(find.text('Ce qui se passait dans le monde'), findsNothing);
+    });
+
+    testWidgets('the answer buttons are on screen without scrolling', (
+      tester,
+    ) async {
+      // A common phone (412 x 915 dp) minus what the app takes around the
+      // game: about 45 dp of status bar and the 96 dp of the floating
+      // navigation bar. With a long context to fold away.
+      await pumpGame(tester, [
+        round(
+          rises: false,
+          events: [fedEvent],
+          contextEvents: [fedEvent],
+          earnings: [EarningsAnnouncement(day: DateTime.utc(2019, 7, 18))],
+        ),
+      ], size: const Size(412, 770));
+
+      final screen = tester.getRect(find.byType(GameScreen));
+      for (final label in ['Plus haut', 'Plus bas']) {
+        expect(
+          tester.getRect(find.text(label)).bottom,
+          lessThan(screen.bottom),
+          reason: '$label must be visible without scrolling',
+        );
+      }
+    });
   });
 
   testWidgets('a wrong answer reveals the asset, the period and the loss', (

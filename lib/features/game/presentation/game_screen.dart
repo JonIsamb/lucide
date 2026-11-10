@@ -193,6 +193,9 @@ class _RoundView extends StatelessWidget {
           // What the player knows when he bets: the company and the world
           // up to the last visible week, never the hidden ones.
           ContextCard(
+            // Folded again at each new round. Not the chart's key: both
+            // cards are in the same column.
+            key: ValueKey(('context', state.roundIndex)),
             round: round,
             analysis: analyzeWindow(round.history, round.asset.type),
           ),

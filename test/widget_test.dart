@@ -108,7 +108,10 @@ void main() {
     await settle(tester);
     expect(find.text('Manche 1 sur 10'), findsOneWidget);
 
-    // Before the answer, the company and the context are shown.
+    // Before the answer, the company and the context (folded) are shown.
+    await tester.ensureVisible(find.text('Voir le contexte'));
+    await tester.tap(find.text('Voir le contexte'));
+    await settle(tester);
     expect(find.text('Ce qui se passait dans le monde'), findsOneWidget);
   });
 
