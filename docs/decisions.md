@@ -332,3 +332,23 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : les tests qui affichent l'accueil ouvrent la base en mémoire avec `closeStreamsSynchronously: true` (`memoryDatabase()` dans `test/helpers.dart`) et remplacent `appDatabaseProvider` et `ratesApiProvider`.
 - **Alternative écartée** : démonter l'arbre et avancer l'horloge à la fin de chaque test.
 - **Justification** : drift ferme un flux abandonné avec un minuteur de durée nulle, encore en attente quand le test détruit les écrans, ce qui fait échouer le test puis le bloque. C'est l'option que drift documente pour les tests. Aucun test n'ouvre la vraie base ni un vrai client HTTP.
+
+## Identité visuelle : icône et écran de démarrage
+
+### Icône et écran de démarrage générés, pas écrits à la main
+
+- **Décision** : dépendances de développement `flutter_launcher_icons` (0.14.4) et `flutter_native_splash` (2.4.8), configurées par `flutter_launcher_icons.yaml` et `flutter_native_splash.yaml` à la racine. Les images sources sont dans `assets/icon/`, `assets/splash/` et `assets/brand/` (SVG). Les fichiers natifs générés (dossiers `res/` Android, `Assets.xcassets` et `LaunchScreen.storyboard` iOS) sont commités. Aucun code Dart : l'écran de démarrage natif disparaît seul à la première image Flutter.
+- **Alternative écartée** : dessiner chaque taille d'icône et chaque écran de démarrage à la main ; un écran de démarrage en Flutter (il n'apparaît qu'une fois le moteur chargé, l'écran resterait vide avant).
+- **Justification** : une seule image de 1024 px produit toutes les tailles demandées par Android et iOS. Ce sont des dépendances de développement : elles ne sont pas embarquées dans l'app. Les versions récentes ont été imposées : sans contrainte, `pub` gardait des versions de 2022 (0.9.3 et 2.2.16) à cause de versions déjà verrouillées.
+
+### Icône adaptative Android avec la marge par défaut
+
+- **Décision** : fond `#047857` et avant-plan transparent, avec la marge de 16 % que `flutter_launcher_icons` ajoute par défaut. Vérifié avec les masques rond, squircle et carré : le point le plus éloigné du symbole est à 21,6 dp du centre, la zone sûre fait 33 dp de rayon.
+- **Alternative écartée** : marge nulle (`adaptive_icon_foreground_inset: 0`).
+- **Justification** : sans marge, le symbole est plus grand mais touche presque la limite (31,8 dp sur 33) ; avec, il reste proportionné et rien n'est rogné quelle que soit la forme choisie par le fabricant.
+
+### Pas d'écran de démarrage web
+
+- **Décision** : `web: false` dans `flutter_native_splash.yaml`.
+- **Alternative écartée** : garder l'écran de démarrage web que le paquet génère par défaut quand le dossier `web/` existe.
+- **Justification** : l'app vise Android et iOS ; ne pas modifier `web/index.html` sans besoin.
