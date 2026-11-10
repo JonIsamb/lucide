@@ -62,6 +62,7 @@ void main() {
     Future<String> Function()? events,
   }) => GameRepository(
     catalog: catalog,
+    database: db,
     random: Random(seed),
     loadEarningsJson: earnings ?? () async => earningsJson,
     loadEventsJson: events ?? () async => eventsJson,
@@ -207,5 +208,48 @@ void main() {
       expect(rounds, hasLength(10));
       expect(rounds.every((r) => r.events.isEmpty), isTrue);
     }
+  });
+
+  group('finished games', () {
+    test('saved with the time of the end, read back newest first', () async {
+      var now = DateTime.utc(2026, 11, 9, 18);
+      final repository = GameRepository(
+        catalog: catalog,
+        database: db,
+        now: () => now,
+      );
+      await repository.saveGame(score: 4, roundCount: 10);
+      now = DateTime.utc(2026, 11, 10, 9);
+      await repository.saveGame(score: 7, roundCount: 10);
+
+      final played = await repository.watchPlayedGames().first;
+      expect(played.map((g) => g.score), [7, 4]);
+      expect(played.first.finishedAt, DateTime.utc(2026, 11, 10, 9));
+      expect(played.first.roundCount, 10);
+    });
+
+    test('a listener receives each new game without asking again', () async {
+      final repository = game();
+      final counts = <int>[];
+      final subscription = repository.watchPlayedGames().listen(
+        (games) => counts.add(games.length),
+      );
+      addTearDown(subscription.cancel);
+
+      await waitUntil(() => counts.isNotEmpty);
+      await repository.saveGame(score: 5, roundCount: 10);
+      await waitUntil(() => counts.length >= 2);
+
+      expect(counts, [0, 1]);
+    });
+
+    test(
+      'the games never come from the prices: drawing is unaffected',
+      () async {
+        final repository = game();
+        await repository.saveGame(score: 5, roundCount: 10);
+        expect(await repository.drawGame(), isEmpty);
+      },
+    );
   });
 }

@@ -1,11 +1,10 @@
 import 'dart:convert';
 
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:lucide/core/database/app_database.dart';
+import 'package:lucide/core/providers.dart';
 import 'package:lucide/app.dart';
 import 'package:lucide/core/theme/app_theme.dart';
 import 'package:lucide/core/widgets/glass_nav_bar.dart';
@@ -26,7 +25,7 @@ void main() {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    final db = AppDatabase(NativeDatabase.memory());
+    final db = memoryDatabase();
     addTearDown(db.close);
     final catalog = CatalogRepository(
       database: db,
@@ -84,7 +83,7 @@ void main() {
     tester.view.physicalSize = const Size(390, 700);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    final db = AppDatabase(NativeDatabase.memory());
+    final db = memoryDatabase();
     addTearDown(db.close);
     final catalog = CatalogRepository(
       database: db,
@@ -115,6 +114,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(db),
           catalogRepositoryProvider.overrideWithValue(catalog),
           simulatorRepositoryProvider.overrideWithValue(repository),
         ],

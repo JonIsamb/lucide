@@ -104,6 +104,21 @@ class Simulations extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
+/// Finished games of "Teste ton intuition". User data: never purged with
+/// the cache. A game is saved once, when its last round is played; an
+/// abandoned game is not saved.
+@DataClassName('GameSessionRow')
+class GameSessions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  DateTimeColumn get finishedAt => dateTime()();
+
+  /// Good answers.
+  IntColumn get score => integer()();
+
+  /// Rounds played: the chance bounds of a score depend on it.
+  IntColumn get roundCount => integer()();
+}
+
 // --- DAOs -----------------------------------------------------------------
 // A DAO groups the queries of one table, so the repository reads like
 // "candlesDao.lastCandles(...)" and never writes SQL itself.
@@ -270,12 +285,18 @@ class SimulationsDao extends DatabaseAccessor<AppDatabase>
   SimulationsDao(super.attachedDatabase);
 
   /// Newest first.
-  Future<List<SimulationRow>> allSimulations() {
-    return (select(simulations)..orderBy([
-          (t) => OrderingTerm.desc(t.createdAt),
-          (t) => OrderingTerm.desc(t.id),
-        ]))
-        .get();
+  Future<List<SimulationRow>> allSimulations() => _newestFirst().get();
+
+  /// Same list, sent again after every change of the table (save or
+  /// delete, from any screen).
+  Stream<List<SimulationRow>> watchSimulations() => _newestFirst().watch();
+
+  SimpleSelectStatement<$SimulationsTable, SimulationRow> _newestFirst() {
+    return select(simulations)..orderBy([
+      (t) => OrderingTerm.desc(t.createdAt),
+      // Two simulations saved in the same instant: the last inserted wins.
+      (t) => OrderingTerm.desc(t.id),
+    ]);
   }
 
   Future<int> insertSimulation(SimulationsCompanion row) {
@@ -284,6 +305,25 @@ class SimulationsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> deleteSimulation(int id) async {
     await (delete(simulations)..where((t) => t.id.equals(id))).go();
+  }
+}
+
+@DriftAccessor(tables: [GameSessions])
+class GameSessionsDao extends DatabaseAccessor<AppDatabase>
+    with _$GameSessionsDaoMixin {
+  GameSessionsDao(super.attachedDatabase);
+
+  Future<int> insertSession(GameSessionsCompanion row) {
+    return into(gameSessions).insert(row);
+  }
+
+  /// Every finished game, newest first, sent again after each new game.
+  Stream<List<GameSessionRow>> watchSessions() {
+    return (select(gameSessions)..orderBy([
+          (t) => OrderingTerm.desc(t.finishedAt),
+          (t) => OrderingTerm.desc(t.id),
+        ]))
+        .watch();
   }
 }
 
@@ -298,6 +338,7 @@ class SimulationsDao extends DatabaseAccessor<AppDatabase>
     FxRates,
     InflationRates,
     Simulations,
+    GameSessions,
   ],
   daos: [
     InstrumentsDao,
@@ -307,6 +348,7 @@ class SimulationsDao extends DatabaseAccessor<AppDatabase>
     FxRatesDao,
     InflationDao,
     SimulationsDao,
+    GameSessionsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -317,9 +359,10 @@ class AppDatabase extends _$AppDatabase {
 
   // Increase this number and add a migration when a table changes.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
-  // Version 2 adds the simulator tables: existing data is kept.
+  // Each step only adds tables: existing data is kept.
+  // Version 2 adds the simulator tables, version 3 the finished games.
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
@@ -328,6 +371,9 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(fxRates);
         await m.createTable(inflationRates);
         await m.createTable(simulations);
+      }
+      if (from < 3) {
+        await m.createTable(gameSessions);
       }
     },
   );

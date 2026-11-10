@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../domain/game_round.dart';
+import '../../domain/played_game.dart';
 
 /// Three small tiles: games played, best score, average score.
 class StatsTiles extends StatelessWidget {

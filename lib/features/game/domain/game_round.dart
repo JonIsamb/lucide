@@ -66,17 +66,3 @@ class GameRound {
   /// [maxEventsPerRound]). Shown before the answer, cut at [hiddenStart].
   final List<MarketEvent> contextEvents;
 }
-
-/// Numbers shown under the final score. They will come from the saved
-/// games once the game is persisted.
-class GameStats {
-  const GameStats({
-    required this.gamesPlayed,
-    required this.bestScore,
-    required this.averageScore,
-  });
-
-  final int gamesPlayed;
-  final int bestScore;
-  final double averageScore;
-}

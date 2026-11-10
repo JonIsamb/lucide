@@ -110,6 +110,49 @@ void main() {
     expect(repository.draws, 2);
   });
 
+  /// Plays the 3 prepared rounds: right, wrong, right.
+  void playWholeGame() {
+    controller().answer(Guess.higher);
+    controller().nextRound();
+    controller().answer(Guess.higher);
+    controller().nextRound();
+    controller().answer(Guess.higher);
+    controller().nextRound();
+  }
+
+  test('a finished game is saved once, with its score', () async {
+    playWholeGame();
+    expect(state().phase, GamePhase.finished);
+    await waitUntil(() => repository.played.isNotEmpty);
+
+    expect(repository.played.single.score, 2);
+    expect(repository.played.single.roundCount, 3);
+
+    // Nothing else can move a finished game: no second save.
+    controller().nextRound();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(repository.played, hasLength(1));
+  });
+
+  test('a game in progress is not saved', () async {
+    controller().answer(Guess.higher);
+    controller().nextRound();
+    controller().answer(Guess.lower);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(repository.played, isEmpty);
+  });
+
+  test('a save that fails still shows the final score', () async {
+    repository.failSaves = true;
+    playWholeGame();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(state().phase, GamePhase.finished);
+    expect(state().score, 2);
+    expect(repository.played, isEmpty);
+  });
+
   test('actions are ignored when no round could be drawn', () async {
     container = ProviderContainer(
       overrides: [

@@ -282,3 +282,46 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Alternative écartée** : filtrer dans le Widget ; ne pas afficher les événements qui dépassent la période visible.
 - **Justification** : un événement comme celui des droits de douane d'avril 2025 s'étend sur la période visible et la période masquée. Découper en jalons datés permet de montrer ce qui était connu sans donner la réponse. Le filtre est dans le domaine, donc testable sans écran. Les dates des événements du fichier ont été avancées au premier jalon vérifié (SVB : 12 mars 2023, chute d'août 2024 : 2 août).
 
+## Accueil : données réelles
+
+### Parties terminées enregistrées (table `game_sessions`, schéma v3)
+
+- **Décision** : table `game_sessions` (`id`, `finished_at`, `score`, `round_count`) avec son propre DAO (données utilisateur, jamais purgées avec le cache), ajoutée par une migration `onUpgrade` (`from < 3`) qui conserve les données existantes. `GameController.nextRound` enregistre la partie quand la dernière manche est passée, en arrière-plan : le bilan s'affiche tout de suite, et un échec d'écriture ne retire que cette partie de l'historique. `round_count` est stocké, car les bornes du hasard dépendent du nombre de manches.
+- **Alternative écartée** : les colonnes `started_at` et `hint_mode` et la table `game_rounds` du cahier des charges (section 6.2) ; ou des préférences clé-valeur.
+- **Justification** : le mode indice a été supprimé, il n'y a plus rien à stocker dans `hint_mode`, et aucun écran n'utilise l'heure de début ni le détail des manches. Une table dans la base drift garde toutes les données utilisateur au même endroit, testées sur base en mémoire. Ajouter ces colonnes plus tard ne coûtera qu'une migration. Testé : la montée de version 2 vers 3 conserve une simulation enregistrée.
+
+### Requêtes observées : l'accueil se met à jour seul
+
+- **Décision** : les DAO exposent des requêtes observées drift (`watchSimulations`, `watchSessions`) ; les dépôts les convertissent en entités du domaine (`watchSaved`, `watchPlayedGames`) ; des `StreamProvider` (`lastSimulationProvider`, `playedGamesProvider`) les exposent à l'accueil et au bilan du jeu.
+- **Alternative écartée** : relire la base à chaque ouverture de l'accueil ; invalider le provider de l'accueil depuis le simulateur et le jeu ; lire la dernière simulation dans `SimulatorController`.
+- **Justification** : la base reste la seule source de vérité. Une simulation enregistrée ou supprimée, ou une partie terminée, dans n'importe quel onglet, déclenche une nouvelle émission : l'accueil suit sans que le simulateur ou le jeu le connaissent. `SimulatorController` aurait, dès le démarrage, chargé le seed des taux et appelé le réseau ; `lastSimulationProvider` ne fait qu'une lecture.
+
+### Statistiques de fin de partie réelles
+
+- **Décision** : `gameStatsProvider` (dans `game_history.dart`) calcule parties jouées, meilleur score et moyenne à partir des parties enregistrées (`summarizeGames`, pur, testé). Les tuiles restent masquées tant que la base n'a pas répondu. `sample_stats.dart` est supprimé.
+- **Alternative écartée** : garder les chiffres d'exemple.
+- **Justification** : c'était prévu (voir « Statistiques d'exemple derrière un provider ») : les Widgets n'ont pas changé, seul le provider l'a fait.
+
+### Barre « ce qu'il reste » calculée dans le domaine
+
+- **Décision** : `gainBreakdown` (`simulator/domain/gain_breakdown.dart`) découpe le résultat figé : chaque étape de la cascade qui a fait baisser la performance devient un segment, puis vient le rendement réel. Une étape nulle ou favorable (change, déflation) n'est pas un coût et n'est pas nommée. Quand le rendement réel est nul ou négatif, il n'y a pas de barre : une phrase dit si le cours a baissé ou si les coûts ont tout pris.
+- **Alternative écartée** : afficher les quatre étapes en valeur absolue, quel que soit leur signe.
+- **Justification** : la barre de `segmented_progress_bar` divise chaque segment par la somme : une valeur négative ou une somme nulle la casserait. Par construction de la cascade, la somme des segments vaut le gain annoncé plus les étapes favorables (testé).
+
+### Invitations au premier lancement
+
+- **Décision** : sans simulation enregistrée, la grande carte invite à en faire une (bouton vers l'onglet Simulations) ; sans partie, le raccourci du jeu invite à jouer ; les favoris gardent leur message. Quand rien n'est enregistré (ni simulation, ni partie, ni favori), une ligne de bienvenue présente les onglets. Pendant la lecture de la base, un squelette remplace la carte.
+- **Alternative écartée** : un écran d'accueil séparé au premier lancement, avec un indicateur « déjà vu » persisté.
+- **Justification** : l'état vide dit à chaque endroit ce qui le remplira. Il se déduit des données, sans indicateur de plus à stocker ni à tester.
+
+### « Voir le détail » ouvre la simulation enregistrée
+
+- **Décision** : le bouton attend que `SimulatorController` soit prêt, appelle `openSaved`, puis affiche l'onglet Simulations sur le résultat figé, sans animation et sans recalcul.
+- **Alternative écartée** : ouvrir seulement l'onglet, sur le formulaire.
+- **Justification** : l'utilisateur veut voir le détail de ce chiffre, pas refaire la simulation. L'onglet affiche lui-même son erreur si sa lecture échoue.
+
+### Tests de Widget avec flux drift
+
+- **Décision** : les tests qui affichent l'accueil ouvrent la base en mémoire avec `closeStreamsSynchronously: true` (`memoryDatabase()` dans `test/helpers.dart`) et remplacent `appDatabaseProvider` et `ratesApiProvider`.
+- **Alternative écartée** : démonter l'arbre et avancer l'horloge à la fin de chaque test.
+- **Justification** : drift ferme un flux abandonné avec un minuteur de durée nulle, encore en attente quand le test détruit les écrans, ce qui fait échouer le test puis le bloque. C'est l'option que drift documente pour les tests. Aucun test n'ouvre la vraie base ni un vrai client HTTP.

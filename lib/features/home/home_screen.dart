@@ -7,17 +7,31 @@ import '../catalog/presentation/catalog_controller.dart';
 import '../catalog/presentation/catalog_state.dart';
 import '../catalog/presentation/widgets/asset_row.dart';
 import '../catalog/presentation/widgets/catalog_card.dart';
+import '../game/presentation/game_history.dart';
+import '../simulator/domain/saved_simulation.dart';
+import '../simulator/presentation/last_simulation.dart';
+import '../simulator/presentation/simulator_controller.dart';
+import 'home_texts.dart';
 import 'widgets/last_simulation_card.dart';
 import 'widgets/shortcut_card.dart';
 
 /// Home tab: last simulation, shortcuts to the game and the catalogue, and
 /// the user's favorites.
+///
+/// Everything comes from the database through providers that watch it: a
+/// simulation saved or a game finished in another tab shows up here
+/// without reloading. When there is nothing yet (first launch), each card
+/// invites the user to the tab that fills it.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key, required this.onOpenTab});
 
   /// Switches the bottom bar to another tab (1 catalogue, 2 simulations,
   /// 3 jeu). The tabs are owned by HomeShell, not by this screen.
   final ValueChanged<int> onOpenTab;
+
+  static const _catalogTab = 1;
+  static const _simulatorTab = 2;
+  static const _gameTab = 3;
 
   // @TODO Comes from the profile once there is one.
   static const _firstName = 'Jonathan';
@@ -34,10 +48,38 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  /// Shows [saved] in the Simulations tab, exactly as it was saved (no
+  /// recalculation), then switches to that tab.
+  Future<void> _openSimulation(
+    BuildContext context,
+    WidgetRef ref,
+    SavedSimulation saved,
+  ) async {
+    try {
+      // The tab may not be built yet: wait for its data, so it opens
+      // directly on the result instead of the form.
+      await ref.read(simulatorControllerProvider.future);
+      if (!context.mounted) return;
+      ref.read(simulatorControllerProvider.notifier).openSaved(saved);
+    } on Object {
+      // The tab shows its own error and retry button.
+    }
+    if (context.mounted) onOpenTab(_simulatorTab);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final catalog = ref.watch(catalogControllerProvider);
+    final lastSimulation = ref.watch(lastSimulationProvider);
+    final lastGame = ref.watch(lastPlayedGameProvider);
+
+    // Nothing saved anywhere yet: most likely the first launch. While
+    // something is still loading, we do not know, so no welcome line.
+    final firstVisit =
+        _readAndEmpty(lastSimulation) &&
+        _readAndEmpty(lastGame) &&
+        catalog.value?.assets.any((a) => a.isFavorite) == false;
 
     return SafeArea(
       bottom: false,
@@ -47,21 +89,29 @@ class HomeScreen extends ConsumerWidget {
           const _Header(initials: _initials),
           const SizedBox(height: 12),
           Text('Salut $_firstName', style: textTheme.headlineMedium),
+          if (firstVisit) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Bienvenue ! Explore le catalogue, fais une simulation ou teste '
+              'ton intuition : tes résultats s’afficheront ici.',
+              style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+            ),
+          ],
           const SizedBox(height: 16),
-          // @TODO Read the last simulation from the database when the
-          // simulator is done. These are the numbers of the mockup.
-          LastSimulationCard(
-            title: 'S&P 500, 1 000 € sur 2 ans',
-            realGain: 3.7,
-            nominalGain: 20,
-            costs: const {
-              'change': 5,
-              'frais': 1.5,
-              'impôt': 4.5,
-              'inflation': 5.3,
-            },
-            onDetailPressed: () => onOpenTab(2),
-          ),
+          switch (lastSimulation) {
+            AsyncData(value: final saved?) => LastSimulationCard(
+              result: saved.result,
+              onDetailPressed: () => _openSimulation(context, ref, saved),
+            ),
+            AsyncData() => SimulationInviteCard(
+              onStart: () => onOpenTab(_simulatorTab),
+            ),
+            AsyncError() => SimulationInviteCard(
+              unreadable: true,
+              onStart: () => onOpenTab(_simulatorTab),
+            ),
+            _ => const SimulationCardSkeleton(),
+          },
           const SizedBox(height: 16),
           IntrinsicHeight(
             child: Row(
@@ -71,12 +121,14 @@ class HomeScreen extends ConsumerWidget {
                   child: ShortcutCard(
                     icon: Icons.casino_outlined,
                     title: 'Teste ton intuition',
-                    // @TODO Last score from the game.
-                    subtitle: 'Dernière partie : 11/20, comme une pièce',
+                    subtitle: switch (lastGame) {
+                      AsyncData(:final value) => lastGameSubtitle(value),
+                      _ => gameTagline,
+                    },
                     background: AppColors.gameTint,
                     accent: AppColors.gameInk,
                     subtitleColor: AppColors.gameInk,
-                    onTap: () => onOpenTab(3),
+                    onTap: () => onOpenTab(_gameTab),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -85,7 +137,7 @@ class HomeScreen extends ConsumerWidget {
                     icon: Icons.trending_up_rounded,
                     title: 'Explorer le catalogue',
                     subtitle: _catalogSubtitle(catalog.value),
-                    onTap: () => onOpenTab(1),
+                    onTap: () => onOpenTab(_catalogTab),
                   ),
                 ),
               ],
@@ -101,7 +153,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => onOpenTab(1),
+                onPressed: () => onOpenTab(_catalogTab),
                 child: const Text('Tout voir'),
               ),
             ],
@@ -150,6 +202,10 @@ class HomeScreen extends ConsumerWidget {
       ],
     );
   }
+
+  /// The database answered, and there is nothing.
+  static bool _readAndEmpty(AsyncValue<Object?> value) =>
+      value is AsyncData && value.value == null;
 
   static String _catalogSubtitle(CatalogState? state) {
     final count = state?.assets.length;

@@ -73,3 +73,11 @@ Ce fichier alimente le rapport.
 - **Un événement qui commence dans les semaines masquées n'apparaît pas avant la réponse**, même s'il explique la suite. C'est le but : ne rien révéler.
 - **Semaines de 7 jours.** La frontière entre semaines visibles et masquées suppose des semaines de 7 jours (un jour férié peut décaler une bougie d'un jour ou deux).
 
+
+## Accueil
+
+- **Dernière simulation = dernière enregistrée.** Un calcul affiché mais non enregistré n'apparaît pas sur l'accueil ; la carte d'invitation le dit (« Enregistre ta simulation pour la retrouver ici »).
+- **Parties abandonnées non comptées.** Une partie est enregistrée à la fin de sa dernière manche seulement. Quitter l'onglet ou rejouer en cours de partie ne laisse aucune trace : les statistiques ne portent que sur les parties terminées.
+- **Bienvenue déduite des données.** La ligne de bienvenue s'affiche tant que rien n'est enregistré, pas seulement au tout premier lancement : si l'utilisateur supprime toutes ses simulations et favoris sans avoir fini de partie, elle revient.
+- **Durée en mois calendaires.** « 2 ans et 3 mois » compte les mois du calendrier (du 15 au 15). Sous un mois, la durée est en jours.
+- **Barre de l'accueil.** Elle totalise le gain annoncé et les étapes favorables (change, déflation) ; ces dernières ne sont pas dessinées. Si rien ne reste en pouvoir d'achat, la barre est remplacée par une phrase.

@@ -354,6 +354,9 @@ void main() {
     expect(find.bySemanticsLabel('2 sur 2'), findsOneWidget);
     expect(find.text('/ 2'), findsOneWidget);
     expect(find.text('zone du hasard'), findsOneWidget);
+    // The tiles count the game just saved, not sample numbers.
+    expect(find.text('partie jouée'), findsOneWidget);
+    expect(find.text('2/2'), findsOneWidget);
     expect(find.text('meilleur score'), findsOneWidget);
 
     await tester.tap(find.text('Accueil'));

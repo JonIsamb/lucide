@@ -136,8 +136,16 @@ class SimulatorRepository {
 
   // --- Saved simulations (user data) ---------------------------------------
 
-  Future<List<SavedSimulation>> loadSaved() async {
-    final rows = await _database.simulationsDao.allSimulations();
+  /// Newest first.
+  Future<List<SavedSimulation>> loadSaved() async =>
+      _readable(await _database.simulationsDao.allSimulations());
+
+  /// Newest first, sent again after every save or delete, whichever screen
+  /// made it.
+  Stream<List<SavedSimulation>> watchSaved() =>
+      _database.simulationsDao.watchSimulations().map(_readable);
+
+  static List<SavedSimulation> _readable(List<SimulationRow> rows) {
     final saved = <SavedSimulation>[];
     for (final row in rows) {
       try {
