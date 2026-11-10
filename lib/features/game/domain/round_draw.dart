@@ -6,9 +6,10 @@ import 'dart:math';
 
 import '../../catalog/domain/instrument.dart';
 import '../../catalog/domain/weekly_candle.dart';
-import 'earnings_hint.dart';
+import 'earnings_announcement.dart';
 import 'game_round.dart';
 import 'game_verdict.dart';
+import 'market_event.dart';
 
 const visibleWeeks = 26;
 const hiddenWeeks = 4;
@@ -66,6 +67,7 @@ List<GameRound> drawRounds(
   List<GameSeries> series,
   Random random, {
   int count = roundsPerGame,
+  List<MarketEvent> events = const [],
 }) {
   final candidates = [
     for (var s = 0; s < series.length; s++)
@@ -76,7 +78,7 @@ List<GameRound> drawRounds(
   final rounds = <GameRound>[];
   while (rounds.length < count && candidates.isNotEmpty) {
     final pick = candidates[random.nextInt(candidates.length)];
-    rounds.add(_cutRound(series[pick.series], pick.start));
+    rounds.add(_cutRound(series[pick.series], pick.start, events));
     candidates.removeWhere(
       (c) =>
           c.series == pick.series && (c.start - pick.start).abs() < windowWeeks,
@@ -86,7 +88,7 @@ List<GameRound> drawRounds(
 }
 
 /// The window starting at [start], rebased so its first week equals 100.
-GameRound _cutRound(GameSeries series, int start) {
+GameRound _cutRound(GameSeries series, int start, List<MarketEvent> events) {
   final window = series.candles.sublist(start, start + windowWeeks);
   final base = window.first.close;
   final prices = [for (final candle in window) candle.close / base * 100];
@@ -96,10 +98,27 @@ GameRound _cutRound(GameSeries series, int start) {
     future: prices.sublist(visibleWeeks),
     start: window.first.date,
     end: window.last.date,
-    hints: earningsHints(
-      weekStarts: [for (final candle in window) candle.date],
-      visibleWeeks: visibleWeeks,
-      announcements: series.announcements,
+    visibleEnd: window[visibleWeeks - 1].date,
+    earnings: [
+      for (final announcement in series.announcements)
+        if (!announcement.day.isBefore(window.first.date) &&
+            announcement.day.isBefore(
+              window.last.date.add(const Duration(days: 7)),
+            ))
+          announcement,
+    ],
+    events: eventsDuring(
+      events,
+      from: window.first.date,
+      to: window.last.date,
+      type: series.asset.type,
+    ),
+    contextEvents: eventsDuring(
+      events,
+      from: window.first.date,
+      // The last visible week lasts until the day before the first hidden one.
+      to: window[visibleWeeks].date.subtract(const Duration(days: 1)),
+      type: series.asset.type,
     ),
   );
 }

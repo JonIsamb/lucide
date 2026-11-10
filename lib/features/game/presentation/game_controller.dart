@@ -35,16 +35,14 @@ class GameController extends AsyncNotifier<GameState> {
     );
   }
 
-  /// The player asks for the hint of the round on screen, before betting.
-  void showHint() {
+  /// The player asks why the price moved, once the round is revealed.
+  void explain() {
     final current = state.value;
-    if (current == null ||
-        current.phase != GamePhase.playing ||
-        current.rounds.isEmpty) {
-      return;
-    }
+    if (current == null || current.phase != GamePhase.revealed) return;
     state = AsyncData(
-      current.copyWith(hintRounds: {...current.hintRounds, current.roundIndex}),
+      current.copyWith(
+        explainedRounds: {...current.explainedRounds, current.roundIndex},
+      ),
     );
   }
 

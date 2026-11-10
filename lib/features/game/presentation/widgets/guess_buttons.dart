@@ -79,82 +79,29 @@ class _GuessButton extends StatelessWidget {
   }
 }
 
-/// "Voir un indice", with a dashed outline. The hint itself is shown by
-/// `HintCard`, which replaces this button once pressed.
-class HintButton extends StatelessWidget {
-  const HintButton({super.key, required this.onPressed});
+/// "Expliquer la réponse": opens the explanation of a revealed round.
+class ExplainButton extends StatelessWidget {
+  const ExplainButton({super.key, required this.onPressed});
 
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      foregroundPainter: _DashedBorderPainter(
-        color: AppColors.primary.withValues(alpha: 0.45),
-        radius: 16,
-      ),
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          disabledForegroundColor: AppColors.primary,
-          minimumSize: const Size.fromHeight(46),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          textStyle: const TextStyle(
-            fontFamily: 'Nunito',
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.lightbulb_outline_rounded, size: 18),
-            SizedBox(width: 8),
-            Text('Voir un indice'),
-          ],
+    return FilledButton.tonalIcon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.help_outline_rounded, size: 20),
+      label: const Text('Expliquer la réponse'),
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(48),
+        backgroundColor: AppColors.lightGreen,
+        foregroundColor: AppColors.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: const TextStyle(
+          fontFamily: 'Nunito',
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
   }
-}
-
-/// Flutter has no dashed border: this draws one around a rounded rectangle.
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({required this.color, required this.radius});
-
-  final Color color;
-  final double radius;
-
-  static const _dash = 6.0;
-  static const _gap = 5.0;
-  static const _stroke = 1.5;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final outline = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          // Half the stroke inside, so the border is not cut at the edges.
-          (Offset.zero & size).deflate(_stroke / 2),
-          Radius.circular(radius),
-        ),
-      );
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = _stroke;
-
-    for (final metric in outline.computeMetrics()) {
-      for (var start = 0.0; start < metric.length; start += _dash + _gap) {
-        canvas.drawPath(metric.extractPath(start, start + _dash), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorderPainter old) =>
-      old.color != color || old.radius != radius;
 }

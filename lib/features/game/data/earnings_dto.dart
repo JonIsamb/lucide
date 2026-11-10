@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import '../domain/earnings_hint.dart';
+import '../domain/earnings_announcement.dart';
 
 /// One row of assets/earnings.json. The field names are those of the
 /// Twelve Data `/earnings` answer, so new rows can be pasted as they are.

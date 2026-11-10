@@ -68,6 +68,7 @@ flutter:
   assets:
     - assets/catalog.json
     - assets/earnings.json
+    - assets/market_events.json
     - assets/seed/fx_eur_usd.json
     - assets/seed/inflation_fra.json
 
