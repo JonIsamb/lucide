@@ -127,6 +127,13 @@ AssetOverview overview(
 
 /// Fake API: serves prepared series and remembers every call.
 class FakeApi implements MarketDataApi {
+  /// Exchange → provider name, to act as two providers (see
+  /// MarketDataRouter). Every exchange is "fake" by default.
+  final Map<String?, String> sources = {};
+
+  @override
+  String sourceFor(String? exchange) => sources[exchange] ?? 'fake';
+
   final Map<String, List<WeeklyCandle>> series = {};
   final Map<String, String?> logos = {};
   final Map<String, ApiException> errors = {};

@@ -378,3 +378,23 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : `core/network/json_http.dart` (`getJson`) fait toutes les requêtes : GET avec délai de 20 s, erreurs réseau, HTTP et JSON converties en `ApiException` typée. Un client peut lire le corps avant le code HTTP (`checkBody`), car Twelve Data place ses erreurs dans le corps, parfois avec un code 200. `core/network/json_values.dart` regroupe les conversions défensives (`parseDouble`, `parseInt`, `parseDate`). `TwelveDataClient` et `HttpRatesClient` ne gardent que leurs adresses et la lecture de leurs réponses.
 - **Alternative écartée** : une requête écrite dans chaque client, comme avant.
 - **Justification** : le même code existait deux fois (délai, erreurs, décodage) et se serait répété pour toute nouvelle source. Factorisé, il est testé une fois. Au passage, le client Twelve Data convertit aussi les erreurs de socket et de TLS (seul le client des taux le faisait), et `parseDouble` refuse partout `NaN` et l'infini.
+
+## Actifs éligibles au PEA
+
+### Une seconde source de cours : Alpha Vantage pour Euronext Paris
+
+- **Décision** : quatre actifs cotés à Paris, éligibles au PEA, ajoutés au catalogue (34 actifs) : deux ETF Amundi, `PSP5` (S&P 500) et `CW8` (MSCI World), et deux actions, LVMH (`MC`) et TotalEnergies (`TTE`). Leurs cours viennent d'Alpha Vantage (`TIME_SERIES_WEEKLY`, symboles `MC.PAR`…), tous les autres de Twelve Data. `MarketDataRouter` choisit le fournisseur selon la place de cotation (`exchange` de `catalog.json`) : le dépôt ne voit qu'un `MarketDataApi`.
+- **Alternative écartée** : plan Twelve Data payant ; Alpha Vantage pour tout le catalogue ; EODHD (1 an d'historique en gratuit) ; cours embarqués en CSV, figés et sans mise à jour.
+- **Justification** : vérifié le 10 et le 15 novembre 2026, le plan gratuit de Twelve Data refuse Euronext (« available starting with the Grow or Venture plan », testé sur LVMH et CW8), alors qu'Alpha Vantage sert les quatre actifs en euros avec plus de 5 ans d'historique. Sans actif éligible, le simulateur refusait toujours le PEA. Avec seulement quatre actifs, une requête par série et un rafraîchissement au plus toutes les 6 heures, on reste très loin du quota gratuit d'Alpha Vantage, trop faible pour 34 actifs. Les deux ETF répliquent des indices déjà présents en version américaine (SPY, URTH) : la même idée de placement se compare dans deux enveloppes.
+
+### Une erreur de clé ou de quota n'arrête que son fournisseur
+
+- **Décision** : `MarketDataApi.sourceFor` donne le fournisseur d'une place de cotation. Pendant `refreshAll`, une erreur de clé ou de quota arrête seulement les actifs de ce fournisseur ; l'erreur est levée à la fin, une fois tout le reste enregistré. Une erreur réseau arrête tout, tout de suite.
+- **Alternative écartée** : garder la règle « toute erreur de clé ou de quota arrête tout ».
+- **Justification** : sinon, une clé Alpha Vantage absente (chez un coéquipier) ou son quota épuisé bloquerait les 30 actifs de Twelve Data et leurs logos, et même tout le catalogue dès qu'un actif de Paris est en favori, donc rafraîchi en premier.
+
+### Semaines ramenées au lundi, une seule ligne par semaine
+
+- **Décision** : Alpha Vantage date une semaine de son dernier jour de cotation ; le client la date du lundi de cette semaine, comme Twelve Data. Quand une semaine arrive en deux lignes, la plus récente est gardée.
+- **Alternative écartée** : stocker les dates telles quelles.
+- **Justification** : le cache, la fiche et le jeu supposent une bougie par semaine, datée du lundi. Les réponses réelles contiennent des semaines en deux lignes (Noël 2024 : 24 et 27 décembre, sur les quatre actifs) : sans ce choix, l'enregistrement de la série échouait sur la clé primaire (symbole, date). La ligne la plus récente porte la vraie clôture de la semaine.

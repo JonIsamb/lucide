@@ -81,3 +81,15 @@ Ce fichier alimente le rapport.
 - **Bienvenue déduite des données.** La ligne de bienvenue s'affiche tant que rien n'est enregistré, pas seulement au tout premier lancement : si l'utilisateur supprime toutes ses simulations et favoris sans avoir fini de partie, elle revient.
 - **Durée en mois calendaires.** « 2 ans et 3 mois » compte les mois du calendrier (du 15 au 15). Sous un mois, la durée est en jours.
 - **Barre de l'accueil.** Elle totalise le gain annoncé et les étapes favorables (change, déflation) ; ces dernières ne sont pas dessinées. Si rien ne reste en pouvoir d'achat, la barre est remplacée par une phrase.
+
+## Actifs éligibles au PEA (Alpha Vantage)
+
+- **Quotas d'Alpha Vantage non officiels.** Sa page de documentation ne publie pas les limites du plan gratuit ; d'autres sources donnent environ 25 requêtes par jour et 5 par minute. Le limiteur de l'app est réglé sur 5 requêtes par 61 secondes ; aucun compteur journalier n'est persisté.
+- **Message de quota non observé.** Le client reconnaît un quota épuisé aux mots de son message (`rate limit`, `requests per day`, `API call frequency`) : nous ne l'avons pas provoqué pour ne pas gaspiller le quota.
+- **Fausse clé indétectable.** Alpha Vantage sert les données même avec une clé inventée (vérifié) : seule une clé absente est signalée.
+- **Pas de logo** pour les actifs de Paris : Alpha Vantage n'en fournit pas, et le logo Twelve Data d'un actif Euronext demande un plan payant. Leurs initiales s'affichent.
+- **Pas d'annonce de résultats** pour LVMH et TotalEnergies dans le jeu : `earnings.json` vient de la SEC, qui ne couvre que les sociétés déposant des 8-K.
+- **Cours non ajustés.** Comme pour Twelve Data. Une seule division d'actions apparaît dans les séries reçues (TotalEnergies, mai 2006), hors de la fenêtre de 5 ans conservée.
+- **34 actifs au lieu de 30.** Le cahier des charges parle de 30 actifs ; les 4 actifs PEA s'ajoutent aux 30 existants.
+- **Éligibilité saisie à la main.** `peaEligible` est écrit dans `catalog.json`. Les deux actions sont éligibles par la règle du PEA (sociétés françaises) ; pour les ETF, l'éligibilité est indiquée par les courtiers (par exemple Fortuneo pour CW8), sans confirmation officielle d'Amundi ou de l'AMF trouvée.
+

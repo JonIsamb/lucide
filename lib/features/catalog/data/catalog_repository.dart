@@ -167,19 +167,28 @@ class CatalogRepository {
   /// Order: favorites first, then catalogue order; every series before any
   /// logo, because prices matter more than pictures.
   ///
-  /// A network, key or quota error stops everything (the next calls would
-  /// fail the same way) and is thrown to the caller. A single unknown
-  /// symbol is skipped so it does not block the 29 others.
+  /// A network error stops everything (the phone is offline) and is thrown
+  /// at once. A key or quota error only stops its own provider (Twelve
+  /// Data or Alpha Vantage, see MarketDataRouter): the other one goes on,
+  /// and the error is thrown at the end. A single unknown symbol is
+  /// skipped so it does not block the others.
   Stream<RefreshProgress> refreshAll({bool force = false}) async* {
     final symbols = await _symbolsToRefresh(force);
+    final exchanges = await _exchangesBySymbol();
+    // Provider → the key or quota error that stopped it.
+    final stopped = <String, ApiException>{};
     var done = 0;
     yield RefreshProgress(done: done, total: symbols.length);
 
     for (final symbol in symbols) {
-      try {
-        await refreshSeries(symbol);
-      } on ApiException catch (e) {
-        if (_stopsEverything(e)) rethrow;
+      final source = _api.sourceFor(exchanges[symbol]);
+      if (!stopped.containsKey(source)) {
+        try {
+          await refreshSeries(symbol);
+        } on ApiException catch (e) {
+          if (e.kind == ApiErrorKind.network) rethrow;
+          if (_stopsItsProvider(e)) stopped[source] = e;
+        }
       }
       done++;
       yield RefreshProgress(
@@ -190,10 +199,13 @@ class CatalogRepository {
     }
 
     for (final symbol in await _symbolsWithoutLogoInfo()) {
+      final source = _api.sourceFor(exchanges[symbol]);
+      if (stopped.containsKey(source)) continue;
       try {
         await refreshLogo(symbol);
       } on ApiException catch (e) {
-        if (_stopsEverything(e)) rethrow;
+        if (e.kind == ApiErrorKind.network) rethrow;
+        if (_stopsItsProvider(e)) stopped[source] = e;
         continue;
       }
       yield RefreshProgress(
@@ -202,6 +214,10 @@ class CatalogRepository {
         updated: await loadOverview(symbol),
       );
     }
+
+    // Everything that could be downloaded is saved: now report the first
+    // provider that was stopped.
+    if (stopped.isNotEmpty) throw stopped.values.first;
   }
 
   /// Downloads the series of [symbol], only the missing weeks if possible.
@@ -286,6 +302,11 @@ class CatalogRepository {
     ];
   }
 
+  Future<Map<String, String?>> _exchangesBySymbol() async => {
+    for (final row in await _database.instrumentsDao.allInstruments())
+      row.symbol: row.exchange,
+  };
+
   Future<List<String>> _symbolsWithoutLogoInfo() async {
     final instruments = await _database.instrumentsDao.allInstruments();
     final meta = await _database.cacheMetaDao.allMeta();
@@ -295,10 +316,9 @@ class CatalogRepository {
     ];
   }
 
-  static bool _stopsEverything(ApiException e) =>
-      e.kind == ApiErrorKind.network ||
-      e.kind == ApiErrorKind.invalidKey ||
-      e.kind == ApiErrorKind.rateLimit;
+  /// The next calls to the same provider would fail the same way.
+  static bool _stopsItsProvider(ApiException e) =>
+      e.kind == ApiErrorKind.invalidKey || e.kind == ApiErrorKind.rateLimit;
 
   Future<AssetOverview> _buildOverview(
     InstrumentRow row,
@@ -371,6 +391,6 @@ bool overlapMismatch(double storedClose, double freshClose) {
 final catalogRepositoryProvider = Provider<CatalogRepository>(
   (ref) => CatalogRepository(
     database: ref.watch(appDatabaseProvider),
-    api: ref.watch(twelveDataClientProvider),
+    api: ref.watch(marketDataApiProvider),
   ),
 );

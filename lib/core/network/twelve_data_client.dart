@@ -31,6 +31,9 @@ class TwelveDataClient implements MarketDataApi {
 
   static const _host = 'api.twelvedata.com';
 
+  @override
+  String sourceFor(String? exchange) => 'Twelve Data';
+
   /// Weekly candles of [symbol], oldest first.
   ///
   /// With [startDate], only the candles from that date are returned

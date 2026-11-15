@@ -132,7 +132,7 @@ void main() {
   testWidgets('catalogue shows prices and changes in French', (tester) async {
     await pumpApp(tester);
 
-    expect(find.text('30 actifs'), findsOneWidget);
+    expect(find.text('34 actifs'), findsOneWidget);
     expect(find.text('Apple'), findsOneWidget);
     expect(find.text('Action, 122,30 \$'), findsOneWidget);
     expect(find.text('+22,3 %'), findsOneWidget);
@@ -147,7 +147,7 @@ void main() {
 
     await tester.tap(find.text('Effacer la recherche'));
     await tester.pumpAndSettle();
-    expect(find.text('30 actifs'), findsOneWidget);
+    expect(find.text('34 actifs'), findsOneWidget);
   });
 
   testWidgets('type filter and favorite star', (tester) async {
