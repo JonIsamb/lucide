@@ -372,3 +372,9 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : la configuration de lancement d'Android Studio passe `--dart-define-from-file=secrets.json` (fichier ignoré par git, voir README). Le manifeste Android principal déclare la permission `INTERNET`.
 - **Alternative écartée** : écrire la clé dans le code ; laisser la permission aux seules variantes debug et profile.
 - **Justification** : sans l'option, l'app démarre avec une clé vide : le client refuse alors toute requête (erreur « clé invalide ») et le catalogue ne charge rien. Sans la permission dans le manifeste principal, un APK release n'aurait aucun accès au réseau. Limite connue : une clé embarquée dans une app mobile reste extractible.
+
+### Une seule façon d'appeler une API JSON
+
+- **Décision** : `core/network/json_http.dart` (`getJson`) fait toutes les requêtes : GET avec délai de 20 s, erreurs réseau, HTTP et JSON converties en `ApiException` typée. Un client peut lire le corps avant le code HTTP (`checkBody`), car Twelve Data place ses erreurs dans le corps, parfois avec un code 200. `core/network/json_values.dart` regroupe les conversions défensives (`parseDouble`, `parseInt`, `parseDate`). `TwelveDataClient` et `HttpRatesClient` ne gardent que leurs adresses et la lecture de leurs réponses.
+- **Alternative écartée** : une requête écrite dans chaque client, comme avant.
+- **Justification** : le même code existait deux fois (délai, erreurs, décodage) et se serait répété pour toute nouvelle source. Factorisé, il est testé une fois. Au passage, le client Twelve Data convertit aussi les erreurs de socket et de TLS (seul le client des taux le faisait), et `parseDouble` refuse partout `NaN` et l'infini.
