@@ -7,7 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide/core/providers.dart';
 import 'package:lucide/app.dart';
 import 'package:lucide/core/theme/app_theme.dart';
-import 'package:lucide/core/widgets/glass_nav_bar.dart';
+import 'package:lucide/core/widgets/floating_nav_bar.dart';
 import 'package:lucide/features/catalog/data/catalog_repository.dart';
 import 'package:lucide/features/simulator/data/simulator_repository.dart';
 import 'package:lucide/features/simulator/simulator_screen.dart';
@@ -133,7 +133,10 @@ void main() {
     await tester.ensureVisible(button);
     await tester.pump();
     final center = tester.getCenter(button);
-    expect(center.dy, lessThan(tester.getRect(find.byType(GlassNavBar)).top));
+    expect(
+      center.dy,
+      lessThan(tester.getRect(find.byType(FloatingNavBar)).top),
+    );
     // Nothing (the bar) may cover the button: it is part of the hit path.
     final hit = tester.hitTestOnBinding(center).path.map((e) => e.target);
     expect(hit, contains(tester.renderObject(button)));

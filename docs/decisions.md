@@ -230,7 +230,7 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Alternative écartée** : garder les textes anglais du sélecteur ; ou écrire un sélecteur de date maison.
 - **Justification** : sans ces délégués, `showDatePicker` plante en français (« No MaterialLocalizations found »). Le paquet est fourni avec Flutter : rien n'est téléchargé d'un tiers.
 
-### Barre de navigation « liquid glass »
+### Barre de navigation « liquid glass » (remplacée, voir « Barre de navigation flottante, sans paquet »)
 
 - **Décision** : dépendance `liquid_glass_renderer` (version préliminaire `1.0.0-dev.2`) pour la barre du bas. Flutter GPU activé dans `Info.plist` (iOS, macOS) et `AndroidManifest.xml`. La barre flotte au dessus des pages dans un `Stack` de `HomeShell`, qui réduit d'autant le `MediaQuery.padding` des pages.
 - **Alternative écartée** : `BackdropFilter` + dégradé translucide (sans dépendance, mais sans réfraction) ; `NavigationBar` Material.
@@ -358,3 +358,11 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : `AppColors.background` passe de `#F8F3F1` (beige) à `#F2F5F3` (mist) et `AppColors.ink` de `#1F1A17` (brun très foncé) à `#13221C` (vert très foncé), les couleurs de la marque. Le vert principal, la menthe pâle et la menthe vive étaient déjà les siens.
 - **Alternative écartée** : garder le fond beige et le texte brun.
 - **Justification** : l'app, l'icône et l'écran de démarrage forment la même famille de verts. Les deux couleurs ne sont définies qu'une fois, dans `AppColors` : aucun Widget n'a changé. Contrastes recalculés (WCAG AA, 4,5:1 minimum) : texte 15,0 sur le fond, texte secondaire 5,6, hausse 7,4, baisse 5,4, vert principal 5,0.
+
+## Barre de navigation et accès au réseau
+
+### Barre de navigation flottante, sans paquet
+
+- **Décision** : `FloatingNavBar` (`core/widgets/floating_nav_bar.dart`) : une pastille blanche avec une ombre légère, l'onglet actif dans une capsule menthe pâle, l'icône et le libellé en vert principal. Uniquement des Widgets Flutter. La dépendance `liquid_glass_renderer` est retirée, ainsi que son préchargement dans `main.dart` et les clés `FLTEnableFlutterGPU` d'iOS et macOS.
+- **Alternative écartée** : garder le verre liquide ; `NavigationBar` de Material, collée en bas et pleine largeur.
+- **Justification** : sur Android, Flutter GPU est désactivé (il plantait le système de l'émulateur), donc le paquet affichait son verre de secours, gris et terne. Le paquet était en préversion et exigeait une API expérimentale. Une barre en Widgets simples rend partout de la même façon, s'explique en deux phrases et allège les tests (la suite passe de 40 s à 10 s).

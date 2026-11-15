@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/theme/app_theme.dart';
-import 'core/widgets/glass_nav_bar.dart';
+import 'core/widgets/floating_nav_bar.dart';
 import 'features/catalog/presentation/catalog_screen.dart';
 import 'features/game/presentation/game_screen.dart';
 import 'features/home/home_screen.dart';
@@ -65,7 +65,7 @@ class _HomeShellState extends State<HomeShell> {
     // list end is hidden behind the glass.
     final media = MediaQuery.of(context);
     final barSpace =
-        GlassNavBar.height + 12 + math.max(media.padding.bottom, 8);
+        FloatingNavBar.height + 12 + math.max(media.padding.bottom, 8);
     return Scaffold(
       body: Stack(
         children: [
@@ -93,26 +93,26 @@ class _HomeShellState extends State<HomeShell> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: GlassNavBar(
+            child: FloatingNavBar(
               selectedIndex: _index,
               onSelected: _select,
               items: const [
-                GlassNavItem(
+                NavItem(
                   icon: Icons.home_outlined,
                   selectedIcon: Icons.home_rounded,
                   label: 'Accueil',
                 ),
-                GlassNavItem(
+                NavItem(
                   icon: Icons.trending_up_rounded,
                   selectedIcon: Icons.trending_up_rounded,
                   label: 'Catalogue',
                 ),
-                GlassNavItem(
+                NavItem(
                   icon: Icons.calculate_outlined,
                   selectedIcon: Icons.calculate_rounded,
                   label: 'Simulations',
                 ),
-                GlassNavItem(
+                NavItem(
                   icon: Icons.casino_outlined,
                   selectedIcon: Icons.casino_rounded,
                   label: 'Jeu',
