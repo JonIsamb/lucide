@@ -366,3 +366,9 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : `FloatingNavBar` (`core/widgets/floating_nav_bar.dart`) : une pastille blanche avec une ombre légère, l'onglet actif dans une capsule menthe pâle, l'icône et le libellé en vert principal. Uniquement des Widgets Flutter. La dépendance `liquid_glass_renderer` est retirée, ainsi que son préchargement dans `main.dart` et les clés `FLTEnableFlutterGPU` d'iOS et macOS.
 - **Alternative écartée** : garder le verre liquide ; `NavigationBar` de Material, collée en bas et pleine largeur.
 - **Justification** : sur Android, Flutter GPU est désactivé (il plantait le système de l'émulateur), donc le paquet affichait son verre de secours, gris et terne. Le paquet était en préversion et exigeait une API expérimentale. Une barre en Widgets simples rend partout de la même façon, s'explique en deux phrases et allège les tests (la suite passe de 40 s à 10 s).
+
+### Clé Twelve Data transmise au lancement
+
+- **Décision** : la configuration de lancement d'Android Studio passe `--dart-define-from-file=secrets.json` (fichier ignoré par git, voir README). Le manifeste Android principal déclare la permission `INTERNET`.
+- **Alternative écartée** : écrire la clé dans le code ; laisser la permission aux seules variantes debug et profile.
+- **Justification** : sans l'option, l'app démarre avec une clé vide : le client refuse alors toute requête (erreur « clé invalide ») et le catalogue ne charge rien. Sans la permission dans le manifeste principal, un APK release n'aurait aucun accès au réseau. Limite connue : une clé embarquée dans une app mobile reste extractible.

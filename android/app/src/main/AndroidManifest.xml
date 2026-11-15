@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Prices (Twelve Data), exchange rates (Frankfurter) and inflation
+         (World Bank). Debug builds get it from src/debug; a release build
+         only has this one. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="lucide"
         android:name="${applicationName}"
