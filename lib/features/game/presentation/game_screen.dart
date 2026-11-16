@@ -6,10 +6,11 @@ import '../../../core/utils/formatters.dart';
 import '../../asset_detail/asset_detail_screen.dart';
 import '../domain/game_round.dart';
 import '../domain/game_verdict.dart';
+import '../domain/played_game.dart';
 import '../domain/window_regime.dart';
 import 'game_controller.dart';
+import 'game_history.dart';
 import 'game_state.dart';
-import 'sample_stats.dart';
 import 'widgets/asset_context_card.dart';
 import 'widgets/explanation_card.dart';
 import 'widgets/context_card.dart';
@@ -54,7 +55,7 @@ class GameScreen extends ConsumerWidget {
     if (state.phase == GamePhase.finished) {
       return _SummaryView(
         state: state,
-        stats: ref.watch(gameStatsProvider),
+        stats: ref.watch(gameStatsProvider).value,
         onGoHome: onGoHome,
         onReplay: controller.restart,
       );
@@ -192,6 +193,9 @@ class _RoundView extends StatelessWidget {
           // What the player knows when he bets: the company and the world
           // up to the last visible week, never the hidden ones.
           ContextCard(
+            // Folded again at each new round. Not the chart's key: both
+            // cards are in the same column.
+            key: ValueKey(('context', state.roundIndex)),
             round: round,
             analysis: analyzeWindow(round.history, round.asset.type),
           ),
@@ -291,7 +295,9 @@ class _SummaryView extends StatelessWidget {
   });
 
   final GameState state;
-  final GameStats stats;
+
+  /// Null until the saved games are read: the tiles then stay hidden.
+  final GameStats? stats;
   final VoidCallback onGoHome;
   final VoidCallback onReplay;
 
@@ -322,8 +328,10 @@ class _SummaryView extends StatelessWidget {
             color: AppColors.ink,
           ),
         ),
-        const SizedBox(height: 16),
-        StatsTiles(stats: stats, roundCount: roundCount),
+        if (stats case final stats?) ...[
+          const SizedBox(height: 16),
+          StatsTiles(stats: stats, roundCount: roundCount),
+        ],
         const SizedBox(height: 16),
         LongTermCard(
           onTap: () => Navigator.of(context).push(

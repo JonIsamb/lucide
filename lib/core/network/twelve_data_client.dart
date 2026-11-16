@@ -1,10 +1,9 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 
 import '../../features/catalog/domain/weekly_candle.dart';
 import 'api_exception.dart';
+import 'json_http.dart';
+import 'json_values.dart';
 import 'market_data_api.dart';
 import 'rate_limiter.dart';
 
@@ -31,7 +30,9 @@ class TwelveDataClient implements MarketDataApi {
   final http.Client _http;
 
   static const _host = 'api.twelvedata.com';
-  static const _timeout = Duration(seconds: 20);
+
+  @override
+  String sourceFor(String? exchange) => 'Twelve Data';
 
   /// Weekly candles of [symbol], oldest first.
   ///
@@ -76,36 +77,20 @@ class TwelveDataClient implements MarketDataApi {
     }
     await rateLimiter.acquire();
 
-    final http.Response response;
-    try {
-      response = await _http
-          .get(
-            Uri.https(_host, path, query),
-            // In a header rather than in the URL, so it never shows up in logs.
-            headers: {'Authorization': 'apikey $apiKey'},
-          )
-          .timeout(_timeout);
-    } on TimeoutException catch (e) {
-      throw ApiException(ApiErrorKind.network, 'Timeout: $e');
-    } on http.ClientException catch (e) {
-      throw ApiException(ApiErrorKind.network, e.message);
-    }
-
-    Object? body;
-    try {
-      body = jsonDecode(utf8.decode(response.bodyBytes));
-    } on FormatException {
-      body = null;
-    }
-    if (body is Map<String, dynamic>) {
+    final body = await getJson(
+      _http,
+      Uri.https(_host, path, query),
+      // In a header rather than in the URL, so it never shows up in logs.
+      headers: {'Authorization': 'apikey $apiKey'},
       // Twelve Data often answers 200 with an error inside the body.
-      throwIfError(body);
-      if (response.statusCode == 200) return body;
-    }
-    throw ApiException(
-      errorKindForCode(response.statusCode, ''),
-      'HTTP ${response.statusCode}',
+      checkBody: (body) {
+        if (body is Map<String, dynamic>) throwIfError(body);
+      },
     );
+    if (body is! Map<String, dynamic>) {
+      throw const ApiException(ApiErrorKind.unknown, 'Unexpected JSON');
+    }
+    return body;
   }
 
   static String _formatDate(DateTime date) =>
@@ -127,26 +112,14 @@ void throwIfError(Map<String, dynamic> json) {
 }
 
 /// Maps the error codes documented by Twelve Data to our error kinds.
+/// They follow the HTTP meanings, except 400, which Twelve Data also uses
+/// for "symbol not found" or "no data", among other bad parameters.
 ApiErrorKind errorKindForCode(int code, String message) {
-  switch (code) {
-    case 401:
-      return ApiErrorKind.invalidKey;
-    case 429:
-      return ApiErrorKind.rateLimit;
-    case 404:
-    // 403: the symbol exists but needs a paid plan, so for us it is missing.
-    case 403:
-      return ApiErrorKind.notFound;
-    case 400:
-      // 400 is also used for "symbol not found" or "no data", among
-      // other bad parameters.
-      final lower = message.toLowerCase();
-      return lower.contains('not found') || lower.contains('no data')
-          ? ApiErrorKind.notFound
-          : ApiErrorKind.unknown;
-    default:
-      return ApiErrorKind.unknown;
-  }
+  if (code != 400) return errorKindForStatus(code);
+  final lower = message.toLowerCase();
+  return lower.contains('not found') || lower.contains('no data')
+      ? ApiErrorKind.notFound
+      : ApiErrorKind.unknown;
 }
 
 /// Reads the `values` of a /time_series answer, oldest first.
@@ -193,26 +166,4 @@ String? parseLogoUrl(Map<String, dynamic> json) {
     }
   }
   return null;
-}
-
-double? parseDouble(Object? value) => switch (value) {
-  num() => value.toDouble(),
-  String() => double.tryParse(value.trim()),
-  _ => null,
-};
-
-int? parseInt(Object? value) => switch (value) {
-  int() => value,
-  num() => value.toInt(),
-  String() => int.tryParse(value.trim()),
-  _ => null,
-};
-
-/// "2026-10-05" or "2026-10-05 00:00:00" → DateTime in UTC (date only).
-/// UTC avoids a candle moving to the previous day with time zones.
-DateTime? parseDate(Object? value) {
-  if (value is! String || value.length < 10) return null;
-  final parsed = DateTime.tryParse(value.substring(0, 10));
-  if (parsed == null) return null;
-  return DateTime.utc(parsed.year, parsed.month, parsed.day);
 }

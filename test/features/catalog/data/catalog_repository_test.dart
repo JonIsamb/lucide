@@ -176,6 +176,79 @@ void main() {
     expect((await repository.loadOverview('SPY'))!.hasPrice, isTrue);
   });
 
+  group('two providers', () {
+    // AAPL and SPY on the default provider, MC on a second one (as Alpha
+    // Vantage for Euronext Paris, see MarketDataRouter).
+    late CatalogRepository twoSources;
+
+    setUp(() async {
+      api.sources['Euronext Paris'] = 'paris';
+      twoSources = CatalogRepository(
+        database: db,
+        api: api,
+        loadCatalogJson: () async => jsonEncode([
+          {
+            'symbol': 'MC',
+            'name': 'LVMH',
+            'type': 'stock',
+            'currency': 'EUR',
+            'exchange': 'Euronext Paris',
+            'peaEligible': true,
+          },
+          ...catalogJson,
+        ]),
+        now: () => now,
+      );
+      await twoSources.seedCatalog();
+      api.series['MC'] = weeklySeries([400, 410, 420]);
+    });
+
+    test('a quota error of one provider does not stop the other', () async {
+      api.errors['MC'] = const ApiException(ApiErrorKind.rateLimit);
+
+      await expectLater(
+        twoSources.refreshAll().toList(),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.kind,
+            'kind',
+            ApiErrorKind.rateLimit,
+          ),
+        ),
+      );
+
+      // MC comes first in the catalogue, yet the others were downloaded.
+      expect((await twoSources.loadOverview('AAPL'))!.hasPrice, isTrue);
+      expect((await twoSources.loadOverview('BTC/EUR'))!.hasPrice, isTrue);
+      expect((await twoSources.loadOverview('MC'))!.hasPrice, isFalse);
+      // Their logos too; nothing more is asked to the stopped provider.
+      expect(api.logoCalls, ['AAPL', 'SPY', 'BTC/EUR']);
+    });
+
+    test('a key error stops only the provider that has it', () async {
+      api.errors['AAPL'] = const ApiException(ApiErrorKind.invalidKey);
+
+      await expectLater(
+        twoSources.refreshAll().toList(),
+        throwsA(isA<ApiException>()),
+      );
+
+      expect((await twoSources.loadOverview('MC'))!.hasPrice, isTrue);
+      // AAPL stopped the default provider: SPY and BTC/EUR were not asked.
+      expect(api.seriesCalls.map((c) => c.$1), ['MC', 'AAPL']);
+    });
+
+    test('a network error still stops everything at once', () async {
+      api.errors['MC'] = const ApiException(ApiErrorKind.network);
+
+      await expectLater(
+        twoSources.refreshAll().toList(),
+        throwsA(isA<ApiException>()),
+      );
+      expect(api.seriesCalls.map((c) => c.$1), ['MC']);
+    });
+  });
+
   group('loadDetail', () {
     test('unknown symbol', () async {
       expect(await repository.loadDetail('NOPE'), isNull);

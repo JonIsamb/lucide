@@ -160,6 +160,30 @@ void main() {
       expect((await repository.loadSaved()).single.result.params.amount, 500);
     });
 
+    test('watchSaved sends the list again after a save and a delete', () async {
+      final amounts = <List<double>>[];
+      final subscription = repository.watchSaved().listen(
+        (saved) => amounts.add([for (final s in saved) s.result.params.amount]),
+      );
+      addTearDown(subscription.cancel);
+
+      await waitUntil(() => amounts.isNotEmpty);
+      final first = await repository.save(result(1000));
+      await waitUntil(() => amounts.length >= 2);
+      now = now.add(const Duration(minutes: 1));
+      await repository.save(result(500));
+      await waitUntil(() => amounts.length >= 3);
+      await repository.delete(first.id);
+      await waitUntil(() => amounts.length >= 4);
+
+      expect(amounts, [
+        <double>[],
+        [1000],
+        [500, 1000],
+        [500],
+      ]);
+    });
+
     test('an unreadable row is skipped', () async {
       await repository.save(result(1000));
       await db.simulationsDao.insertSimulation(
@@ -172,6 +196,8 @@ void main() {
         ),
       );
       expect(await repository.loadSaved(), hasLength(1));
+      // The watched list hides it the same way.
+      expect(await repository.watchSaved().first, hasLength(1));
     });
   });
 }

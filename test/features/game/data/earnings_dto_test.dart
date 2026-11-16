@@ -106,7 +106,7 @@ void main() {
       }
     });
 
-    test('every stock of the catalogue has its announcements', () {
+    test('every US stock of the catalogue has its announcements', () {
       final bySymbol = parseEarnings(
         File('assets/earnings.json').readAsStringSync(),
       );
@@ -114,14 +114,25 @@ void main() {
           jsonDecode(File('assets/catalog.json').readAsStringSync()) as List;
       final stocks = [
         for (final item in catalog)
-          if ((item as Map)['type'] == 'stock') item['symbol'] as String,
+          if ((item as Map)['type'] == 'stock') item,
       ];
-      expect(stocks, hasLength(17));
-      for (final symbol in stocks) {
+      // The file comes from the SEC (US filings): the Paris stocks are not
+      // in it.
+      bool inParis(Map<dynamic, dynamic> item) =>
+          item['exchange'] == 'Euronext Paris';
+      final us = [
+        for (final item in stocks)
+          if (!inParis(item)) item['symbol'] as String,
+      ];
+      expect(us, hasLength(17));
+      for (final symbol in us) {
         expect(bySymbol[symbol], isNotEmpty, reason: symbol);
       }
+      for (final item in stocks.where(inParis)) {
+        expect(bySymbol[item['symbol']], isNull, reason: '${item['symbol']}');
+      }
       // No ETF nor crypto: they publish no quarterly results.
-      expect(bySymbol.keys.toSet().difference(stocks.toSet()), isEmpty);
+      expect(bySymbol.keys.toSet().difference(us.toSet()), isEmpty);
     });
 
     test('no row of the file was dropped as unreadable', () {

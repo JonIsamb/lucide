@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/game_repository.dart';
@@ -47,14 +49,31 @@ class GameController extends AsyncNotifier<GameState> {
   }
 
   /// Moves to the next round, or to the final score after the last one.
+  /// A finished game is saved: it feeds the statistics and the home screen.
   void nextRound() {
     final current = state.value;
     if (current == null || current.phase != GamePhase.revealed) return;
+    final finished = current.isLastRound;
     state = AsyncData(
       current.copyWith(
-        phase: current.isLastRound ? GamePhase.finished : GamePhase.playing,
+        phase: finished ? GamePhase.finished : GamePhase.playing,
       ),
     );
+    // A game reaches "finished" only once, so it is saved only once.
+    if (finished) unawaited(_save(current));
+  }
+
+  /// The final score is shown at once; saving happens in the background.
+  Future<void> _save(GameState game) async {
+    try {
+      await ref
+          .read(gameRepositoryProvider)
+          .saveGame(score: game.score, roundCount: game.rounds.length);
+    } on Object {
+      // The player still sees the score: only the history misses this
+      // game. There is nothing useful to ask them to do about it.
+      return;
+    }
   }
 
   /// Starts a new game, with newly drawn rounds.

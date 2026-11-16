@@ -90,6 +90,18 @@ class SimulationsDaoManager {
       $$SimulationsTableTableManager(_db.attachedDatabase, _db.simulations);
 }
 
+mixin _$GameSessionsDaoMixin on DatabaseAccessor<AppDatabase> {
+  $GameSessionsTable get gameSessions => attachedDatabase.gameSessions;
+  GameSessionsDaoManager get managers => GameSessionsDaoManager(this);
+}
+
+class GameSessionsDaoManager {
+  final _$GameSessionsDaoMixin _db;
+  GameSessionsDaoManager(this._db);
+  $$GameSessionsTableTableManager get gameSessions =>
+      $$GameSessionsTableTableManager(_db.attachedDatabase, _db.gameSessions);
+}
+
 class $InstrumentsTable extends Instruments
     with TableInfo<$InstrumentsTable, InstrumentRow> {
   @override
@@ -2357,6 +2369,312 @@ class SimulationsCompanion extends UpdateCompanion<SimulationRow> {
   }
 }
 
+class $GameSessionsTable extends GameSessions
+    with TableInfo<$GameSessionsTable, GameSessionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GameSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _finishedAtMeta = const VerificationMeta(
+    'finishedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> finishedAt = GeneratedColumn<DateTime>(
+    'finished_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<int> score = GeneratedColumn<int>(
+    'score',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roundCountMeta = const VerificationMeta(
+    'roundCount',
+  );
+  @override
+  late final GeneratedColumn<int> roundCount = GeneratedColumn<int>(
+    'round_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, finishedAt, score, roundCount];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'game_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GameSessionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('finished_at')) {
+      context.handle(
+        _finishedAtMeta,
+        finishedAt.isAcceptableOrUnknown(data['finished_at']!, _finishedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_finishedAtMeta);
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scoreMeta);
+    }
+    if (data.containsKey('round_count')) {
+      context.handle(
+        _roundCountMeta,
+        roundCount.isAcceptableOrUnknown(data['round_count']!, _roundCountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roundCountMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GameSessionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GameSessionRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      finishedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}finished_at'],
+      )!,
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}score'],
+      )!,
+      roundCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}round_count'],
+      )!,
+    );
+  }
+
+  @override
+  $GameSessionsTable createAlias(String alias) {
+    return $GameSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
+  final int id;
+  final DateTime finishedAt;
+
+  /// Good answers.
+  final int score;
+
+  /// Rounds played: the chance bounds of a score depend on it.
+  final int roundCount;
+  const GameSessionRow({
+    required this.id,
+    required this.finishedAt,
+    required this.score,
+    required this.roundCount,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['finished_at'] = Variable<DateTime>(finishedAt);
+    map['score'] = Variable<int>(score);
+    map['round_count'] = Variable<int>(roundCount);
+    return map;
+  }
+
+  GameSessionsCompanion toCompanion(bool nullToAbsent) {
+    return GameSessionsCompanion(
+      id: Value(id),
+      finishedAt: Value(finishedAt),
+      score: Value(score),
+      roundCount: Value(roundCount),
+    );
+  }
+
+  factory GameSessionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GameSessionRow(
+      id: serializer.fromJson<int>(json['id']),
+      finishedAt: serializer.fromJson<DateTime>(json['finishedAt']),
+      score: serializer.fromJson<int>(json['score']),
+      roundCount: serializer.fromJson<int>(json['roundCount']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'finishedAt': serializer.toJson<DateTime>(finishedAt),
+      'score': serializer.toJson<int>(score),
+      'roundCount': serializer.toJson<int>(roundCount),
+    };
+  }
+
+  GameSessionRow copyWith({
+    int? id,
+    DateTime? finishedAt,
+    int? score,
+    int? roundCount,
+  }) => GameSessionRow(
+    id: id ?? this.id,
+    finishedAt: finishedAt ?? this.finishedAt,
+    score: score ?? this.score,
+    roundCount: roundCount ?? this.roundCount,
+  );
+  GameSessionRow copyWithCompanion(GameSessionsCompanion data) {
+    return GameSessionRow(
+      id: data.id.present ? data.id.value : this.id,
+      finishedAt: data.finishedAt.present
+          ? data.finishedAt.value
+          : this.finishedAt,
+      score: data.score.present ? data.score.value : this.score,
+      roundCount: data.roundCount.present
+          ? data.roundCount.value
+          : this.roundCount,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GameSessionRow(')
+          ..write('id: $id, ')
+          ..write('finishedAt: $finishedAt, ')
+          ..write('score: $score, ')
+          ..write('roundCount: $roundCount')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, finishedAt, score, roundCount);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GameSessionRow &&
+          other.id == this.id &&
+          other.finishedAt == this.finishedAt &&
+          other.score == this.score &&
+          other.roundCount == this.roundCount);
+}
+
+class GameSessionsCompanion extends UpdateCompanion<GameSessionRow> {
+  final Value<int> id;
+  final Value<DateTime> finishedAt;
+  final Value<int> score;
+  final Value<int> roundCount;
+  const GameSessionsCompanion({
+    this.id = const Value.absent(),
+    this.finishedAt = const Value.absent(),
+    this.score = const Value.absent(),
+    this.roundCount = const Value.absent(),
+  });
+  GameSessionsCompanion.insert({
+    this.id = const Value.absent(),
+    required DateTime finishedAt,
+    required int score,
+    required int roundCount,
+  }) : finishedAt = Value(finishedAt),
+       score = Value(score),
+       roundCount = Value(roundCount);
+  static Insertable<GameSessionRow> custom({
+    Expression<int>? id,
+    Expression<DateTime>? finishedAt,
+    Expression<int>? score,
+    Expression<int>? roundCount,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (finishedAt != null) 'finished_at': finishedAt,
+      if (score != null) 'score': score,
+      if (roundCount != null) 'round_count': roundCount,
+    });
+  }
+
+  GameSessionsCompanion copyWith({
+    Value<int>? id,
+    Value<DateTime>? finishedAt,
+    Value<int>? score,
+    Value<int>? roundCount,
+  }) {
+    return GameSessionsCompanion(
+      id: id ?? this.id,
+      finishedAt: finishedAt ?? this.finishedAt,
+      score: score ?? this.score,
+      roundCount: roundCount ?? this.roundCount,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (finishedAt.present) {
+      map['finished_at'] = Variable<DateTime>(finishedAt.value);
+    }
+    if (score.present) {
+      map['score'] = Variable<int>(score.value);
+    }
+    if (roundCount.present) {
+      map['round_count'] = Variable<int>(roundCount.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GameSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('finishedAt: $finishedAt, ')
+          ..write('score: $score, ')
+          ..write('roundCount: $roundCount')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2367,6 +2685,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FxRatesTable fxRates = $FxRatesTable(this);
   late final $InflationRatesTable inflationRates = $InflationRatesTable(this);
   late final $SimulationsTable simulations = $SimulationsTable(this);
+  late final $GameSessionsTable gameSessions = $GameSessionsTable(this);
   late final InstrumentsDao instrumentsDao = InstrumentsDao(
     this as AppDatabase,
   );
@@ -2376,6 +2695,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final FxRatesDao fxRatesDao = FxRatesDao(this as AppDatabase);
   late final InflationDao inflationDao = InflationDao(this as AppDatabase);
   late final SimulationsDao simulationsDao = SimulationsDao(
+    this as AppDatabase,
+  );
+  late final GameSessionsDao gameSessionsDao = GameSessionsDao(
     this as AppDatabase,
   );
   @override
@@ -2390,6 +2712,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     fxRates,
     inflationRates,
     simulations,
+    gameSessions,
   ];
   @override
   DriftDatabaseOptions get options =>
@@ -3728,6 +4051,194 @@ typedef $$SimulationsTableProcessedTableManager =
       SimulationRow,
       PrefetchHooks Function()
     >;
+typedef $$GameSessionsTableCreateCompanionBuilder =
+    GameSessionsCompanion Function({
+      Value<int> id,
+      required DateTime finishedAt,
+      required int score,
+      required int roundCount,
+    });
+typedef $$GameSessionsTableUpdateCompanionBuilder =
+    GameSessionsCompanion Function({
+      Value<int> id,
+      Value<DateTime> finishedAt,
+      Value<int> score,
+      Value<int> roundCount,
+    });
+
+class $$GameSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $GameSessionsTable> {
+  $$GameSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get finishedAt => $composableBuilder(
+    column: $table.finishedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get roundCount => $composableBuilder(
+    column: $table.roundCount,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GameSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GameSessionsTable> {
+  $$GameSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get finishedAt => $composableBuilder(
+    column: $table.finishedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get roundCount => $composableBuilder(
+    column: $table.roundCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GameSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GameSessionsTable> {
+  $$GameSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get finishedAt => $composableBuilder(
+    column: $table.finishedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
+
+  GeneratedColumn<int> get roundCount => $composableBuilder(
+    column: $table.roundCount,
+    builder: (column) => column,
+  );
+}
+
+class $$GameSessionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GameSessionsTable,
+          GameSessionRow,
+          $$GameSessionsTableFilterComposer,
+          $$GameSessionsTableOrderingComposer,
+          $$GameSessionsTableAnnotationComposer,
+          $$GameSessionsTableCreateCompanionBuilder,
+          $$GameSessionsTableUpdateCompanionBuilder,
+          (
+            GameSessionRow,
+            BaseReferences<_$AppDatabase, $GameSessionsTable, GameSessionRow>,
+          ),
+          GameSessionRow,
+          PrefetchHooks Function()
+        > {
+  $$GameSessionsTableTableManager(_$AppDatabase db, $GameSessionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GameSessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GameSessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GameSessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<DateTime> finishedAt = const Value.absent(),
+                Value<int> score = const Value.absent(),
+                Value<int> roundCount = const Value.absent(),
+              }) => GameSessionsCompanion(
+                id: id,
+                finishedAt: finishedAt,
+                score: score,
+                roundCount: roundCount,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required DateTime finishedAt,
+                required int score,
+                required int roundCount,
+              }) => GameSessionsCompanion.insert(
+                id: id,
+                finishedAt: finishedAt,
+                score: score,
+                roundCount: roundCount,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$GameSessionsTable, GameSessionRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $GameSessionsTable,
+                    GameSessionRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GameSessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GameSessionsTable,
+      GameSessionRow,
+      $$GameSessionsTableFilterComposer,
+      $$GameSessionsTableOrderingComposer,
+      $$GameSessionsTableAnnotationComposer,
+      $$GameSessionsTableCreateCompanionBuilder,
+      $$GameSessionsTableUpdateCompanionBuilder,
+      (
+        GameSessionRow,
+        BaseReferences<_$AppDatabase, $GameSessionsTable, GameSessionRow>,
+      ),
+      GameSessionRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3746,4 +4257,6 @@ class $AppDatabaseManager {
       $$InflationRatesTableTableManager(_db, _db.inflationRates);
   $$SimulationsTableTableManager get simulations =>
       $$SimulationsTableTableManager(_db, _db.simulations);
+  $$GameSessionsTableTableManager get gameSessions =>
+      $$GameSessionsTableTableManager(_db, _db.gameSessions);
 }

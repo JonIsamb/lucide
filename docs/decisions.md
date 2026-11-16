@@ -230,7 +230,7 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Alternative écartée** : garder les textes anglais du sélecteur ; ou écrire un sélecteur de date maison.
 - **Justification** : sans ces délégués, `showDatePicker` plante en français (« No MaterialLocalizations found »). Le paquet est fourni avec Flutter : rien n'est téléchargé d'un tiers.
 
-### Barre de navigation « liquid glass »
+### Barre de navigation « liquid glass » (remplacée, voir « Barre de navigation flottante, sans paquet »)
 
 - **Décision** : dépendance `liquid_glass_renderer` (version préliminaire `1.0.0-dev.2`) pour la barre du bas. Flutter GPU activé dans `Info.plist` (iOS, macOS) et `AndroidManifest.xml`. La barre flotte au dessus des pages dans un `Stack` de `HomeShell`, qui réduit d'autant le `MediaQuery.padding` des pages.
 - **Alternative écartée** : `BackdropFilter` + dégradé translucide (sans dépendance, mais sans réfraction) ; `NavigationBar` Material.
@@ -282,3 +282,119 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Alternative écartée** : filtrer dans le Widget ; ne pas afficher les événements qui dépassent la période visible.
 - **Justification** : un événement comme celui des droits de douane d'avril 2025 s'étend sur la période visible et la période masquée. Découper en jalons datés permet de montrer ce qui était connu sans donner la réponse. Le filtre est dans le domaine, donc testable sans écran. Les dates des événements du fichier ont été avancées au premier jalon vérifié (SVB : 12 mars 2023, chute d'août 2024 : 2 août).
 
+
+### Carte de contexte repliée par défaut
+
+- **Décision** : avant la réponse, `ContextCard` ne montre que le type, le symbole et le nom de l'actif, avec « Voir le contexte » sur la même ligne. La période, la description, le régime, les événements, les résultats et les conseils se déplient sur demande. La légende du graphique, juste au-dessus, donne déjà la période. L'état replié ou déplié est purement visuel : il vit dans le `State` du Widget, pas dans le `GameController`. La carte reçoit une clé par manche, donc elle repart repliée à chaque manche.
+- **Alternative écartée** : carte toujours dépliée ; boutons de réponse fixés en bas de l'écran ; carte repliée qui garde la ligne de période et un bouton sur sa propre ligne (les boutons restaient en partie sous la barre de navigation).
+- **Justification** : dépliée, la carte poussait la question et les boutons « Plus haut » / « Plus bas » sous l'écran : le joueur ne voyait pas comment répondre. Testé sur 412 × 770 (un téléphone de 412 × 915 moins la barre d'état et la barre de navigation flottante) : les deux boutons sont visibles sans défiler, et le test échoue si la carte est dépliée par défaut. Sur un téléphone de 320 de large, le libellé du bouton passe sur deux lignes au lieu de déborder.
+
+## Accueil : données réelles
+
+### Parties terminées enregistrées (table `game_sessions`, schéma v3)
+
+- **Décision** : table `game_sessions` (`id`, `finished_at`, `score`, `round_count`) avec son propre DAO (données utilisateur, jamais purgées avec le cache), ajoutée par une migration `onUpgrade` (`from < 3`) qui conserve les données existantes. `GameController.nextRound` enregistre la partie quand la dernière manche est passée, en arrière-plan : le bilan s'affiche tout de suite, et un échec d'écriture ne retire que cette partie de l'historique. `round_count` est stocké, car les bornes du hasard dépendent du nombre de manches.
+- **Alternative écartée** : les colonnes `started_at` et `hint_mode` et la table `game_rounds` du cahier des charges (section 6.2) ; ou des préférences clé-valeur.
+- **Justification** : le mode indice a été supprimé, il n'y a plus rien à stocker dans `hint_mode`, et aucun écran n'utilise l'heure de début ni le détail des manches. Une table dans la base drift garde toutes les données utilisateur au même endroit, testées sur base en mémoire. Ajouter ces colonnes plus tard ne coûtera qu'une migration. Testé : la montée de version 2 vers 3 conserve une simulation enregistrée.
+
+### Requêtes observées : l'accueil se met à jour seul
+
+- **Décision** : les DAO exposent des requêtes observées drift (`watchSimulations`, `watchSessions`) ; les dépôts les convertissent en entités du domaine (`watchSaved`, `watchPlayedGames`) ; des `StreamProvider` (`lastSimulationProvider`, `playedGamesProvider`) les exposent à l'accueil et au bilan du jeu.
+- **Alternative écartée** : relire la base à chaque ouverture de l'accueil ; invalider le provider de l'accueil depuis le simulateur et le jeu ; lire la dernière simulation dans `SimulatorController`.
+- **Justification** : la base reste la seule source de vérité. Une simulation enregistrée ou supprimée, ou une partie terminée, dans n'importe quel onglet, déclenche une nouvelle émission : l'accueil suit sans que le simulateur ou le jeu le connaissent. `SimulatorController` aurait, dès le démarrage, chargé le seed des taux et appelé le réseau ; `lastSimulationProvider` ne fait qu'une lecture.
+
+### Statistiques de fin de partie réelles
+
+- **Décision** : `gameStatsProvider` (dans `game_history.dart`) calcule parties jouées, meilleur score et moyenne à partir des parties enregistrées (`summarizeGames`, pur, testé). Les tuiles restent masquées tant que la base n'a pas répondu. `sample_stats.dart` est supprimé.
+- **Alternative écartée** : garder les chiffres d'exemple.
+- **Justification** : c'était prévu (voir « Statistiques d'exemple derrière un provider ») : les Widgets n'ont pas changé, seul le provider l'a fait.
+
+### Barre « ce qu'il reste » calculée dans le domaine
+
+- **Décision** : `gainBreakdown` (`simulator/domain/gain_breakdown.dart`) découpe le résultat figé : chaque étape de la cascade qui a fait baisser la performance devient un segment, puis vient le rendement réel. Une étape nulle ou favorable (change, déflation) n'est pas un coût et n'est pas nommée. Quand le rendement réel est nul ou négatif, il n'y a pas de barre : une phrase dit si le cours a baissé ou si les coûts ont tout pris.
+- **Alternative écartée** : afficher les quatre étapes en valeur absolue, quel que soit leur signe.
+- **Justification** : la barre de `segmented_progress_bar` divise chaque segment par la somme : une valeur négative ou une somme nulle la casserait. Par construction de la cascade, la somme des segments vaut le gain annoncé plus les étapes favorables (testé).
+
+### Invitations au premier lancement
+
+- **Décision** : sans simulation enregistrée, la grande carte invite à en faire une (bouton vers l'onglet Simulations) ; sans partie, le raccourci du jeu invite à jouer ; les favoris gardent leur message. Quand rien n'est enregistré (ni simulation, ni partie, ni favori), une ligne de bienvenue présente les onglets. Pendant la lecture de la base, un squelette remplace la carte.
+- **Alternative écartée** : un écran d'accueil séparé au premier lancement, avec un indicateur « déjà vu » persisté.
+- **Justification** : l'état vide dit à chaque endroit ce qui le remplira. Il se déduit des données, sans indicateur de plus à stocker ni à tester.
+
+### « Voir le détail » ouvre la simulation enregistrée
+
+- **Décision** : le bouton attend que `SimulatorController` soit prêt, appelle `openSaved`, puis affiche l'onglet Simulations sur le résultat figé, sans animation et sans recalcul.
+- **Alternative écartée** : ouvrir seulement l'onglet, sur le formulaire.
+- **Justification** : l'utilisateur veut voir le détail de ce chiffre, pas refaire la simulation. L'onglet affiche lui-même son erreur si sa lecture échoue.
+
+### Tests de Widget avec flux drift
+
+- **Décision** : les tests qui affichent l'accueil ouvrent la base en mémoire avec `closeStreamsSynchronously: true` (`memoryDatabase()` dans `test/helpers.dart`) et remplacent `appDatabaseProvider` et `ratesApiProvider`.
+- **Alternative écartée** : démonter l'arbre et avancer l'horloge à la fin de chaque test.
+- **Justification** : drift ferme un flux abandonné avec un minuteur de durée nulle, encore en attente quand le test détruit les écrans, ce qui fait échouer le test puis le bloque. C'est l'option que drift documente pour les tests. Aucun test n'ouvre la vraie base ni un vrai client HTTP.
+
+## Identité visuelle : icône et écran de démarrage
+
+### Icône et écran de démarrage générés, pas écrits à la main
+
+- **Décision** : dépendances de développement `flutter_launcher_icons` (0.14.4) et `flutter_native_splash` (2.4.8), configurées par `flutter_launcher_icons.yaml` et `flutter_native_splash.yaml` à la racine. Les images sources sont dans `assets/icon/`, `assets/splash/` et `assets/brand/` (SVG). Les fichiers natifs générés (dossiers `res/` Android, `Assets.xcassets` et `LaunchScreen.storyboard` iOS) sont commités. Aucun code Dart : l'écran de démarrage natif disparaît seul à la première image Flutter.
+- **Alternative écartée** : dessiner chaque taille d'icône et chaque écran de démarrage à la main ; un écran de démarrage en Flutter (il n'apparaît qu'une fois le moteur chargé, l'écran resterait vide avant).
+- **Justification** : une seule image de 1024 px produit toutes les tailles demandées par Android et iOS. Ce sont des dépendances de développement : elles ne sont pas embarquées dans l'app. Les versions récentes ont été imposées : sans contrainte, `pub` gardait des versions de 2022 (0.9.3 et 2.2.16) à cause de versions déjà verrouillées.
+
+### Icône adaptative Android avec la marge par défaut
+
+- **Décision** : fond `#047857` et avant-plan transparent, avec la marge de 16 % que `flutter_launcher_icons` ajoute par défaut. Vérifié avec les masques rond, squircle et carré : le point le plus éloigné du symbole est à 21,6 dp du centre, la zone sûre fait 33 dp de rayon.
+- **Alternative écartée** : marge nulle (`adaptive_icon_foreground_inset: 0`).
+- **Justification** : sans marge, le symbole est plus grand mais touche presque la limite (31,8 dp sur 33) ; avec, il reste proportionné et rien n'est rogné quelle que soit la forme choisie par le fabricant.
+
+### Pas d'écran de démarrage web
+
+- **Décision** : `web: false` dans `flutter_native_splash.yaml`.
+- **Alternative écartée** : garder l'écran de démarrage web que le paquet génère par défaut quand le dossier `web/` existe.
+- **Justification** : l'app vise Android et iOS ; ne pas modifier `web/index.html` sans besoin.
+
+### Thème aligné sur la marque
+
+- **Décision** : `AppColors.background` passe de `#F8F3F1` (beige) à `#F2F5F3` (mist) et `AppColors.ink` de `#1F1A17` (brun très foncé) à `#13221C` (vert très foncé), les couleurs de la marque. Le vert principal, la menthe pâle et la menthe vive étaient déjà les siens.
+- **Alternative écartée** : garder le fond beige et le texte brun.
+- **Justification** : l'app, l'icône et l'écran de démarrage forment la même famille de verts. Les deux couleurs ne sont définies qu'une fois, dans `AppColors` : aucun Widget n'a changé. Contrastes recalculés (WCAG AA, 4,5:1 minimum) : texte 15,0 sur le fond, texte secondaire 5,6, hausse 7,4, baisse 5,4, vert principal 5,0.
+
+## Barre de navigation et accès au réseau
+
+### Barre de navigation flottante, sans paquet
+
+- **Décision** : `FloatingNavBar` (`core/widgets/floating_nav_bar.dart`) : une pastille blanche avec une ombre légère, l'onglet actif dans une capsule menthe pâle, l'icône et le libellé en vert principal. Uniquement des Widgets Flutter. La dépendance `liquid_glass_renderer` est retirée, ainsi que son préchargement dans `main.dart` et les clés `FLTEnableFlutterGPU` d'iOS et macOS.
+- **Alternative écartée** : garder le verre liquide ; `NavigationBar` de Material, collée en bas et pleine largeur.
+- **Justification** : sur Android, Flutter GPU est désactivé (il plantait le système de l'émulateur), donc le paquet affichait son verre de secours, gris et terne. Le paquet était en préversion et exigeait une API expérimentale. Une barre en Widgets simples rend partout de la même façon, s'explique en deux phrases et allège les tests (la suite passe de 40 s à 10 s).
+
+### Clé Twelve Data transmise au lancement
+
+- **Décision** : la configuration de lancement d'Android Studio passe `--dart-define-from-file=secrets.json` (fichier ignoré par git, voir README). Le manifeste Android principal déclare la permission `INTERNET`.
+- **Alternative écartée** : écrire la clé dans le code ; laisser la permission aux seules variantes debug et profile.
+- **Justification** : sans l'option, l'app démarre avec une clé vide : le client refuse alors toute requête (erreur « clé invalide ») et le catalogue ne charge rien. Sans la permission dans le manifeste principal, un APK release n'aurait aucun accès au réseau. Limite connue : une clé embarquée dans une app mobile reste extractible.
+
+### Une seule façon d'appeler une API JSON
+
+- **Décision** : `core/network/json_http.dart` (`getJson`) fait toutes les requêtes : GET avec délai de 20 s, erreurs réseau, HTTP et JSON converties en `ApiException` typée. Un client peut lire le corps avant le code HTTP (`checkBody`), car Twelve Data place ses erreurs dans le corps, parfois avec un code 200. `core/network/json_values.dart` regroupe les conversions défensives (`parseDouble`, `parseInt`, `parseDate`). `TwelveDataClient` et `HttpRatesClient` ne gardent que leurs adresses et la lecture de leurs réponses.
+- **Alternative écartée** : une requête écrite dans chaque client, comme avant.
+- **Justification** : le même code existait deux fois (délai, erreurs, décodage) et se serait répété pour toute nouvelle source. Factorisé, il est testé une fois. Au passage, le client Twelve Data convertit aussi les erreurs de socket et de TLS (seul le client des taux le faisait), et `parseDouble` refuse partout `NaN` et l'infini.
+
+## Actifs éligibles au PEA
+
+### Une seconde source de cours : Alpha Vantage pour Euronext Paris
+
+- **Décision** : quatre actifs cotés à Paris, éligibles au PEA, ajoutés au catalogue (34 actifs) : deux ETF Amundi, `PSP5` (S&P 500) et `CW8` (MSCI World), et deux actions, LVMH (`MC`) et TotalEnergies (`TTE`). Leurs cours viennent d'Alpha Vantage (`TIME_SERIES_WEEKLY`, symboles `MC.PAR`…), tous les autres de Twelve Data. `MarketDataRouter` choisit le fournisseur selon la place de cotation (`exchange` de `catalog.json`) : le dépôt ne voit qu'un `MarketDataApi`.
+- **Alternative écartée** : plan Twelve Data payant ; Alpha Vantage pour tout le catalogue ; EODHD (1 an d'historique en gratuit) ; cours embarqués en CSV, figés et sans mise à jour.
+- **Justification** : vérifié le 10 et le 15 novembre 2026, le plan gratuit de Twelve Data refuse Euronext (« available starting with the Grow or Venture plan », testé sur LVMH et CW8), alors qu'Alpha Vantage sert les quatre actifs en euros avec plus de 5 ans d'historique. Sans actif éligible, le simulateur refusait toujours le PEA. Avec seulement quatre actifs, une requête par série et un rafraîchissement au plus toutes les 6 heures, on reste très loin du quota gratuit d'Alpha Vantage, trop faible pour 34 actifs. Les deux ETF répliquent des indices déjà présents en version américaine (SPY, URTH) : la même idée de placement se compare dans deux enveloppes.
+
+### Une erreur de clé ou de quota n'arrête que son fournisseur
+
+- **Décision** : `MarketDataApi.sourceFor` donne le fournisseur d'une place de cotation. Pendant `refreshAll`, une erreur de clé ou de quota arrête seulement les actifs de ce fournisseur ; l'erreur est levée à la fin, une fois tout le reste enregistré. Une erreur réseau arrête tout, tout de suite.
+- **Alternative écartée** : garder la règle « toute erreur de clé ou de quota arrête tout ».
+- **Justification** : sinon, une clé Alpha Vantage absente (chez un coéquipier) ou son quota épuisé bloquerait les 30 actifs de Twelve Data et leurs logos, et même tout le catalogue dès qu'un actif de Paris est en favori, donc rafraîchi en premier.
+
+### Semaines ramenées au lundi, une seule ligne par semaine
+
+- **Décision** : Alpha Vantage date une semaine de son dernier jour de cotation ; le client la date du lundi de cette semaine, comme Twelve Data. Quand une semaine arrive en deux lignes, la plus récente est gardée.
+- **Alternative écartée** : stocker les dates telles quelles.
+- **Justification** : le cache, la fiche et le jeu supposent une bougie par semaine, datée du lundi. Les réponses réelles contiennent des semaines en deux lignes (Noël 2024 : 24 et 27 décembre, sur les quatre actifs) : sans ce choix, l'enregistrement de la série échouait sur la clé primaire (symbole, date). La ligne la plus récente porte la vraie clôture de la semaine.

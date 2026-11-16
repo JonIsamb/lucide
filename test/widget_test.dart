@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,11 +9,15 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide/app.dart';
 import 'package:lucide/core/database/app_database.dart';
 import 'package:lucide/core/network/api_exception.dart';
+import 'package:lucide/core/providers.dart';
 import 'package:lucide/core/theme/app_theme.dart';
 import 'package:lucide/features/asset_detail/asset_detail_screen.dart';
 import 'package:lucide/features/catalog/data/catalog_repository.dart';
 import 'package:lucide/features/game/data/game_repository.dart';
+import 'package:lucide/features/simulator/data/simulator_repository.dart';
 
+import 'features/simulator/data/simulator_repository_test.dart'
+    show FakeRatesApi;
 import 'helpers.dart';
 
 /// Lets the database and the fake API finish their work. They run on real
@@ -45,7 +48,7 @@ void main() {
   });
 
   setUp(() {
-    db = AppDatabase(NativeDatabase.memory());
+    db = memoryDatabase();
     api = FakeApi()
       ..series['AAPL'] = weeklySeries([100, 122.3])
       ..series['INTC'] = weeklySeries([40, 21.76]);
@@ -64,10 +67,15 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          // The home screen reads the saved simulations and games: never
+          // the real database file in a test.
+          appDatabaseProvider.overrideWithValue(db),
+          ratesApiProvider.overrideWithValue(FakeRatesApi()),
           catalogRepositoryProvider.overrideWithValue(catalog),
           gameRepositoryProvider.overrideWithValue(
             GameRepository(
               catalog: catalog,
+              database: db,
               loadEarningsJson: () async => earningsJson,
               loadEventsJson: () async => '[]',
             ),
@@ -100,7 +108,10 @@ void main() {
     await settle(tester);
     expect(find.text('Manche 1 sur 10'), findsOneWidget);
 
-    // Before the answer, the company and the context are shown.
+    // Before the answer, the company and the context (folded) are shown.
+    await tester.ensureVisible(find.text('Voir le contexte'));
+    await tester.tap(find.text('Voir le contexte'));
+    await settle(tester);
     expect(find.text('Ce qui se passait dans le monde'), findsOneWidget);
   });
 
@@ -121,7 +132,7 @@ void main() {
   testWidgets('catalogue shows prices and changes in French', (tester) async {
     await pumpApp(tester);
 
-    expect(find.text('30 actifs'), findsOneWidget);
+    expect(find.text('34 actifs'), findsOneWidget);
     expect(find.text('Apple'), findsOneWidget);
     expect(find.text('Action, 122,30 \$'), findsOneWidget);
     expect(find.text('+22,3 %'), findsOneWidget);
@@ -136,7 +147,7 @@ void main() {
 
     await tester.tap(find.text('Effacer la recherche'));
     await tester.pumpAndSettle();
-    expect(find.text('30 actifs'), findsOneWidget);
+    expect(find.text('34 actifs'), findsOneWidget);
   });
 
   testWidgets('type filter and favorite star', (tester) async {

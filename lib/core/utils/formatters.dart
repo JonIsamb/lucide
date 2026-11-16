@@ -87,6 +87,29 @@ String formatMonthYear(DateTime day) =>
 /// "5 oct. 2025", for the date of one candle.
 String formatDay(DateTime day) => DateFormat('d MMM y', 'fr_FR').format(day);
 
+/// "12 jours", "8 mois", "1 an", "2 ans et 3 mois": the time between two
+/// plain days, counted in calendar months (from 15 March to 15 May is
+/// 2 months, whatever the length of April). Below one month, in days.
+/// The order of the two days does not matter.
+String formatDuration(DateTime from, DateTime to) {
+  if (to.isBefore(from)) return formatDuration(to, from);
+
+  var months = (to.year - from.year) * 12 + to.month - from.month;
+  // The month is not complete until the same day number is reached.
+  if (to.day < from.day) months--;
+
+  if (months < 1) {
+    final days = to.difference(from).inDays;
+    return days > 1 ? '$days jours' : '$days jour';
+  }
+  final years = months ~/ 12;
+  final rest = months % 12;
+  final yearText = years > 1 ? '$years ans' : '$years an';
+  if (years == 0) return '$rest mois';
+  if (rest == 0) return yearText;
+  return '$yearText et $rest mois';
+}
+
 /// "41,6 M", "1,2 k": big counts such as traded volumes.
 String formatCompactNumber(double value) =>
     NumberFormat.compact(locale: 'fr_FR').format(value);

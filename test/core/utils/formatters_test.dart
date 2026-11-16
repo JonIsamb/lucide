@@ -71,4 +71,36 @@ void main() {
     expect(formatDecimal(10.34), '10,3');
     expect(formatDecimal(-2), '−2,0');
   });
+
+  group('formatDuration', () {
+    DateTime d(int y, int m, int day) => DateTime.utc(y, m, day);
+
+    test('whole years', () {
+      expect(formatDuration(d(2024, 3, 15), d(2025, 3, 15)), '1 an');
+      expect(formatDuration(d(2024, 3, 15), d(2026, 3, 15)), '2 ans');
+    });
+
+    test('months, counted on the calendar', () {
+      expect(formatDuration(d(2025, 3, 15), d(2025, 11, 15)), '8 mois');
+      // February is short, it is still one month.
+      expect(formatDuration(d(2025, 2, 1), d(2025, 3, 1)), '1 mois');
+      expect(formatDuration(d(2024, 1, 10), d(2026, 4, 10)), '2 ans et 3 mois');
+      expect(formatDuration(d(2024, 1, 10), d(2025, 2, 10)), '1 an et 1 mois');
+    });
+
+    test('a month is complete only once the same day is reached', () {
+      expect(formatDuration(d(2025, 3, 15), d(2025, 5, 14)), '1 mois');
+      expect(formatDuration(d(2024, 3, 15), d(2025, 3, 14)), '11 mois');
+    });
+
+    test('below one month: days, singular for one', () {
+      expect(formatDuration(d(2025, 1, 31), d(2025, 2, 28)), '28 jours');
+      expect(formatDuration(d(2025, 10, 6), d(2025, 10, 7)), '1 jour');
+      expect(formatDuration(d(2025, 10, 6), d(2025, 10, 6)), '0 jour');
+    });
+
+    test('the order of the two days does not matter', () {
+      expect(formatDuration(d(2026, 3, 15), d(2024, 3, 15)), '2 ans');
+    });
+  });
 }
