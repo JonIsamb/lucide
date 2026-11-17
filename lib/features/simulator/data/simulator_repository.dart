@@ -73,6 +73,23 @@ class SimulatorRepository {
     return (await _catalog.loadDetail(symbol))?.candles ?? const [];
   }
 
+  /// Downloads the prices of [symbol] and returns them. Throws an
+  /// [ApiException] when the network or the provider fails: the caller
+  /// keeps what it had.
+  Future<List<WeeklyCandle>> downloadCandles(String symbol) async {
+    await _catalog.refreshSeries(symbol);
+    return loadCandles(symbol);
+  }
+
+  /// Completes the stored prices of [symbol] when the cache decision says
+  /// so (old data, or a history shorter than the one now downloaded) and
+  /// returns the new candles. Null when nothing was downloaded. Throws an
+  /// [ApiException] on failure: the caller keeps what it had.
+  Future<List<WeeklyCandle>?> refreshCandlesIfNeeded(String symbol) async {
+    if (!await _catalog.refreshSeriesIfNeeded(symbol)) return null;
+    return loadCandles(symbol);
+  }
+
   Future<List<FxRate>> loadFxRates() async {
     final rows = await _database.fxRatesDao.allRates();
     return [

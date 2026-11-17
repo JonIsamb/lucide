@@ -220,9 +220,9 @@ void main() {
       expect(candles, hasLength(2));
     });
 
-    test('keeps about 5 years, like the Twelve Data downloads', () async {
+    test('keeps about 10 years, like the Twelve Data downloads', () async {
       final client = clientWith(
-        MockClient((_) async => http.Response(series(400), 200)),
+        MockClient((_) async => http.Response(series(600), 200)),
       );
       final candles = await client.fetchWeeklySeries('MC');
       expect(candles, hasLength(fullHistoryWeeks));

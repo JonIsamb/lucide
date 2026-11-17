@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +8,7 @@ import '../../core/theme/app_colors.dart';
 import '../catalog/presentation/catalog_controller.dart';
 import '../catalog/presentation/widgets/favorite_button.dart';
 import '../catalog/presentation/widgets/status_messages.dart';
+import '../simulator/presentation/simulator_controller.dart';
 import '../simulator/simulator_screen.dart';
 import 'domain/chart_period.dart';
 import 'presentation/asset_detail_controller.dart';
@@ -91,7 +94,7 @@ class AssetDetailScreen extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: showsSimulatorButton
-          ? const _SimulatorButton()
+          ? _SimulatorButton(symbol: symbol)
           : null,
     );
   }
@@ -249,11 +252,14 @@ class _ErrorBody extends StatelessWidget {
 }
 
 /// Fixed button at the bottom, leading to the simulator.
-class _SimulatorButton extends StatelessWidget {
-  const _SimulatorButton();
+class _SimulatorButton extends ConsumerWidget {
+  const _SimulatorButton({required this.symbol});
 
-  void _openSimulator(BuildContext context) {
-    // The simulator is not built yet: its placeholder is shown for now.
+  final String symbol;
+
+  void _openSimulator(BuildContext context, WidgetRef ref) {
+    // The form starts again on this asset, not on an earlier simulation.
+    unawaited(ref.read(simulatorControllerProvider.notifier).startWith(symbol));
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => Scaffold(
@@ -268,7 +274,7 @@ class _SimulatorButton extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.background,
@@ -278,7 +284,7 @@ class _SimulatorButton extends StatelessWidget {
         top: false,
         minimum: const EdgeInsets.fromLTRB(20, 12, 20, 12),
         child: FilledButton.icon(
-          onPressed: () => _openSimulator(context),
+          onPressed: () => _openSimulator(context, ref),
           icon: const Icon(Icons.calculate_outlined, size: 20),
           label: const Text('Ce que j’aurais vraiment gagné'),
           style: FilledButton.styleFrom(

@@ -33,8 +33,25 @@ void main() {
       overrides: [gameRepositoryProvider.overrideWithValue(repository)],
     );
     addTearDown(container.dispose);
-    // The rounds are drawn before each test starts.
+    // The rounds are drawn before each test starts, then the welcome screen
+    // is left.
     await container.read(gameControllerProvider.future);
+    controller().start();
+  });
+
+  test('a game opens on the welcome screen, with no round started', () async {
+    controller().restart();
+    await container.read(gameControllerProvider.future);
+    expect(state().phase, GamePhase.intro);
+    expect(state().guess, isNull);
+    expect(state().roundIndex, 0);
+
+    // Answers are ignored until the player starts.
+    controller().answer(Guess.higher);
+    expect(state().guesses, isEmpty);
+
+    controller().start();
+    expect(state().phase, GamePhase.playing);
   });
 
   test('a game starts on the first round, with no answer', () {
@@ -101,7 +118,7 @@ void main() {
     expect(state().phase, GamePhase.finished);
     expect(state().score, 2);
 
-    controller().restart();
+    controller().replay();
     await container.read(gameControllerProvider.future);
     expect(state().phase, GamePhase.playing);
     expect(state().roundIndex, 0);
@@ -167,6 +184,6 @@ void main() {
 
     expect(state().rounds, isEmpty);
     expect(state().guesses, isEmpty);
-    expect(state().phase, GamePhase.playing);
+    expect(state().phase, GamePhase.intro);
   });
 }

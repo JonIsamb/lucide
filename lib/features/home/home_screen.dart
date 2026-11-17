@@ -8,6 +8,9 @@ import '../catalog/presentation/catalog_state.dart';
 import '../catalog/presentation/widgets/asset_row.dart';
 import '../catalog/presentation/widgets/catalog_card.dart';
 import '../game/presentation/game_history.dart';
+import '../profile/domain/profile.dart';
+import '../profile/presentation/profile_controller.dart';
+import '../profile/profile_screen.dart';
 import '../simulator/domain/saved_simulation.dart';
 import '../simulator/presentation/last_simulation.dart';
 import '../simulator/presentation/simulator_controller.dart';
@@ -32,10 +35,6 @@ class HomeScreen extends ConsumerWidget {
   static const _catalogTab = 1;
   static const _simulatorTab = 2;
   static const _gameTab = 3;
-
-  // @TODO Comes from the profile once there is one.
-  static const _firstName = 'Jonathan';
-  static const _initials = 'JI';
 
   /// How many favorites the home shows before "Tout voir".
   static const _maxFavorites = 3;
@@ -73,6 +72,7 @@ class HomeScreen extends ConsumerWidget {
     final catalog = ref.watch(catalogControllerProvider);
     final lastSimulation = ref.watch(lastSimulationProvider);
     final lastGame = ref.watch(lastPlayedGameProvider);
+    final profile = ref.watch(profileControllerProvider).value ?? Profile.empty;
 
     // Nothing saved anywhere yet: most likely the first launch. While
     // something is still loading, we do not know, so no welcome line.
@@ -86,9 +86,17 @@ class HomeScreen extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
         children: [
-          const _Header(initials: _initials),
+          _Header(
+            initials: profile.initials,
+            onProfile: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
+            ),
+          ),
           const SizedBox(height: 12),
-          Text('Salut $_firstName', style: textTheme.headlineMedium),
+          Text(
+            profile.hasName ? 'Salut ${profile.firstName}' : 'Salut',
+            style: textTheme.headlineMedium,
+          ),
           if (firstVisit) ...[
             const SizedBox(height: 6),
             Text(
@@ -217,9 +225,11 @@ class HomeScreen extends ConsumerWidget {
 
 /// "lucide." on the left, the user's initials on the right.
 class _Header extends StatelessWidget {
-  const _Header({required this.initials});
+  const _Header({required this.initials, required this.onProfile});
 
+  /// Empty without a profile name: the avatar then shows a person icon.
   final String initials;
+  final VoidCallback onProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -239,14 +249,24 @@ class _Header extends StatelessWidget {
               ?.copyWith(fontSize: 22, fontWeight: FontWeight.w900),
         ),
         const Spacer(),
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: AppColors.lightGreen,
-          child: Text(
-            initials,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: AppColors.primary,
+        Semantics(
+          button: true,
+          label: 'Profil',
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onProfile,
+            child: CircleAvatar(
+              radius: 22,
+              backgroundColor: AppColors.lightGreen,
+              child: initials.isEmpty
+                  ? const Icon(Icons.person_rounded, color: AppColors.primary)
+                  : Text(
+                      initials,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                    ),
             ),
           ),
         ),

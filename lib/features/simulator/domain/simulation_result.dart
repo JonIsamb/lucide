@@ -50,6 +50,8 @@ class SimulationResult {
     required this.cumulativeInflation,
     required this.inflationIsEstimate,
     required this.holdingDays,
+    this.isSpeculative = false,
+    this.assumedAnnualGrowth,
   });
 
   final SimulationParams params;
@@ -94,6 +96,13 @@ class SimulationResult {
   final bool inflationIsEstimate;
   final int holdingDays;
 
+  /// True when a price after the last known one was projected: the result
+  /// is a speculation, not what happened.
+  final bool isSpeculative;
+
+  /// Yearly price growth carried forward (fraction), when [isSpeculative].
+  final double? assumedAnnualGrowth;
+
   double get totalFees => buyFee + sellFee + annualFees;
 
   /// What the investment was worth before anything was taken off.
@@ -133,6 +142,8 @@ class SimulationResult {
     'cumulativeInflation': cumulativeInflation,
     'inflationIsEstimate': inflationIsEstimate,
     'holdingDays': holdingDays,
+    'isSpeculative': isSpeculative,
+    'assumedAnnualGrowth': assumedAnnualGrowth,
   };
 
   factory SimulationResult.fromJson(Map<String, dynamic> json) {
@@ -159,6 +170,9 @@ class SimulationResult {
       cumulativeInflation: number('cumulativeInflation'),
       inflationIsEstimate: json['inflationIsEstimate'] as bool,
       holdingDays: (json['holdingDays'] as num).toInt(),
+      // Absent from simulations saved before predictions existed.
+      isSpeculative: json['isSpeculative'] as bool? ?? false,
+      assumedAnnualGrowth: optional('assumedAnnualGrowth'),
     );
   }
 }

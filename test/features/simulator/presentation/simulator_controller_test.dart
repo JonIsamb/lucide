@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide/core/database/app_database.dart';
+import 'package:lucide/core/network/api_exception.dart';
 import 'package:lucide/features/catalog/data/catalog_repository.dart';
 import 'package:lucide/features/simulator/data/simulator_repository.dart';
 import 'package:lucide/features/simulator/domain/simulation_error.dart';
@@ -18,12 +19,14 @@ import '../data/simulator_repository_test.dart' show FakeRatesApi;
 void main() {
   late AppDatabase db;
   late ProviderContainer container;
+  late FakeApi api;
 
   setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
+    api = FakeApi();
     final catalog = CatalogRepository(
       database: db,
-      api: FakeApi(),
+      api: api,
       loadCatalogJson: () async => jsonEncode([
         {
           'symbol': 'KO',
@@ -80,6 +83,26 @@ void main() {
     await start();
     expect(state().phase, SimulatorPhase.unconfigured);
     expect(state().instruments, hasLength(2));
+  });
+
+  test('starting from an asset detail drops the old form and result', () async {
+    final controller = await start();
+    await controller.selectAsset(state().instruments.first);
+    controller.setAmountText('500');
+    controller.compute();
+
+    await controller.startWith('KO');
+
+    expect(state().asset?.symbol, 'KO');
+    expect(state().result, isNull);
+    expect(state().amount, isNull);
+    expect(state().buyDay, isNotNull);
+  });
+
+  test('starting from an unknown symbol leaves the form empty', () async {
+    final controller = await start();
+    await controller.startWith('NOPE');
+    expect(state().asset, isNull);
   });
 
   test('computing without an asset is refused', () async {
@@ -143,27 +166,77 @@ void main() {
     expect(state().phase, SimulatorPhase.computed);
   });
 
-  test('PEA on a non eligible asset is refused with the reason', () async {
+  test('PEA drops a non eligible asset and lists only eligible ones', () async {
+    final controller = await start();
+    await controller.selectAsset(state().instruments.first);
+    controller.setEnvelope(Envelope.pea);
+    expect(state().asset, isNull);
+    expect(state().candles, isEmpty);
+    expect(state().selectableInstruments.every((i) => i.peaEligible), isTrue);
+    controller.compute();
+    expect(state().error, SimulationError.noAsset);
+
+    controller.setEnvelope(Envelope.securitiesAccount);
+    expect(state().selectableInstruments, state().instruments);
+  });
+
+  test('the standard fees are applied to the computation', () async {
     final controller = await start();
     await controller.selectAsset(state().instruments.first);
     controller.setAmountText('1000');
-    controller.setEnvelope(Envelope.pea);
-    expect(state().peaRefused, isTrue);
     controller.compute();
-    expect(state().error, SimulationError.peaNotEligible);
+    final params = state().result!.params;
+    expect(params.brokerageValue, defaultBrokeragePercent);
+    expect(params.annualFeePercent, defaultAnnualFeePercent);
   });
 
-  test('unreadable amount or fee is refused', () async {
+  test('an unreadable amount is refused', () async {
     final controller = await start();
     await controller.selectAsset(state().instruments.first);
     controller.setAmountText('abc');
     controller.compute();
     expect(state().error, SimulationError.amountNotPositive);
+  });
 
+  test('an asset without stored prices has them downloaded', () async {
+    api.series['AAPL'] = [
+      for (var i = 0; i < 10; i++)
+        candle(DateTime.utc(2025, 1, 6 + 7 * i), 100.0 + i),
+    ];
+    final controller = await start();
+    final apple = state().instruments.last;
+    final pending = controller.selectAsset(apple);
+    await pending;
+    expect(api.seriesCalls, isNotEmpty);
+    expect(state().pricesStatus, PricesStatus.ready);
+    expect(state().candles, hasLength(10));
+    expect(state().buyDay, isNotNull);
+  });
+
+  test('a failed download is reported and can be tried again', () async {
+    api.errors['AAPL'] = const ApiException(ApiErrorKind.network);
+    final controller = await start();
+    final apple = state().instruments.last;
+    await controller.selectAsset(apple);
+    expect(state().asset, apple);
+    expect(state().pricesStatus, PricesStatus.failed);
     controller.setAmountText('100');
-    controller.setBrokerageText('x');
     controller.compute();
-    expect(state().error, SimulationError.brokerageOutOfRange);
+    expect(state().error, SimulationError.noPrices);
+
+    api.errors.remove('AAPL');
+    api.series['AAPL'] = [
+      candle(DateTime.utc(2025, 1, 6), 100),
+      candle(DateTime.utc(2025, 1, 13), 110),
+    ];
+    await controller.selectAsset(apple);
+    expect(state().pricesStatus, PricesStatus.ready);
+  });
+
+  test('an asset with stored prices is not downloaded', () async {
+    final controller = await start();
+    await controller.selectAsset(state().instruments.first);
+    expect(api.seriesCalls, isEmpty);
   });
 
   test(

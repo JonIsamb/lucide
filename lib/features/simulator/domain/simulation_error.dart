@@ -8,13 +8,17 @@ enum SimulationError {
     'Cet actif n’a pas de cours à la date d’achat choisie : '
     'choisis une date plus récente.',
   ),
-  sellAfterHistory(
-    'Cet actif n’a pas de cours à la date de vente choisie : '
-    'choisis une date plus ancienne.',
+  horizonTooFar(
+    'La date de vente est trop lointaine : une prédiction ne va pas '
+    'au delà de 10 ans après le dernier cours connu.',
+  ),
+  noGrowth(
+    'L’historique de cet actif est trop court pour estimer une croissance '
+    'moyenne : choisis des dates jusqu’au dernier cours connu.',
   ),
   noPrices(
-    'Aucun cours n’est enregistré pour cet actif. '
-    'Ouvre le catalogue avec une connexion pour les télécharger.',
+    'Les cours de cet actif n’ont pas pu être téléchargés : '
+    'vérifie ta connexion, puis choisis-le de nouveau.',
   ),
   peaNotEligible(
     'Cet actif ne peut pas être détenu dans un PEA : '
