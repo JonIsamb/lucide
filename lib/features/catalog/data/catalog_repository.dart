@@ -228,9 +228,15 @@ class CatalogRepository {
   Future<void> refreshSeries(String symbol) async {
     final exchange = (await _database.instrumentsDao.instrument(symbol))
         ?.exchange;
-    final lastTwo = await _database.candlesDao.lastCandles(symbol, 2);
+    final stored = await _database.candlesDao.lastCandles(
+      symbol,
+      _legacyDepthMaxWeeks,
+    );
+    final lastTwo = stored.length < 2
+        ? stored
+        : stored.sublist(stored.length - 2);
 
-    if (lastTwo.length < 2) {
+    if (lastTwo.length < 2 || _hasLegacyDepth(stored.length)) {
       await _downloadFullSeries(symbol, exchange);
     } else {
       final anchor = lastTwo.first;
@@ -250,6 +256,17 @@ class CatalogRepository {
     await _database.cacheMetaDao.markFetched(symbol, _now());
   }
 
+  /// Series saved when the full download was 5 years (261 weeks) hold
+  /// between [_legacyDepthMinWeeks] and [_legacyDepthMaxWeeks] candles: they
+  /// are downloaded again once, to get the 10 years the simulator offers.
+  /// A real history of that length gets downloaded again at each refresh
+  /// (one credit), which is accepted.
+  static const _legacyDepthMinWeeks = 250;
+  static const _legacyDepthMaxWeeks = 400;
+
+  static bool _hasLegacyDepth(int storedWeeks) =>
+      storedWeeks >= _legacyDepthMinWeeks && storedWeeks < _legacyDepthMaxWeeks;
+
   /// Applies the cache decision ([needsRefresh]) to one asset, for the
   /// detail screen. Returns true when the series was downloaded.
   Future<bool> refreshSeriesIfNeeded(
@@ -257,7 +274,16 @@ class CatalogRepository {
     bool force = false,
   }) async {
     final meta = await _database.cacheMetaDao.metaFor(symbol);
-    if (!needsRefresh(meta?.lastFetchedAt, _now(), force: force)) return false;
+    final stored = await _database.candlesDao.lastCandles(
+      symbol,
+      _legacyDepthMaxWeeks,
+    );
+    // A short legacy history is completed without waiting for the delay.
+    final shortHistory = _hasLegacyDepth(stored.length);
+    if (!shortHistory &&
+        !needsRefresh(meta?.lastFetchedAt, _now(), force: force)) {
+      return false;
+    }
     await refreshSeries(symbol);
     return true;
   }

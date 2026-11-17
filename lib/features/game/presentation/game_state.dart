@@ -3,6 +3,10 @@ import '../domain/game_verdict.dart';
 
 /// Where the player is in the game.
 enum GamePhase {
+  /// Welcome screen: past games, the score to beat and advice. No round
+  /// is started yet.
+  intro,
+
   /// The curve is shown, the player has not answered yet.
   playing,
 
@@ -18,7 +22,7 @@ class GameState {
   const GameState({
     required this.rounds,
     this.guesses = const [],
-    this.phase = GamePhase.playing,
+    this.phase = GamePhase.intro,
     this.explainedRounds = const {},
   });
 
@@ -33,13 +37,17 @@ class GameState {
 
   /// Index of the round on screen. While a round is revealed, its answer
   /// is already in [guesses], hence the "- 1".
-  int get roundIndex =>
-      phase == GamePhase.playing ? guesses.length : guesses.length - 1;
+  int get roundIndex => _awaitingAnswer ? guesses.length : guesses.length - 1;
+
+  /// No answer is waiting to be shown: on the welcome screen or while
+  /// playing.
+  bool get _awaitingAnswer =>
+      phase == GamePhase.intro || phase == GamePhase.playing;
 
   GameRound get round => rounds[roundIndex];
 
-  /// The player's answer to the round on screen (null while playing).
-  Guess? get guess => phase == GamePhase.playing ? null : guesses.last;
+  /// The player's answer to the round on screen (null before answering).
+  Guess? get guess => _awaitingAnswer ? null : guesses.last;
 
   /// Whether the explanation of the round on screen is displayed.
   bool get explanationShown => explainedRounds.contains(roundIndex);

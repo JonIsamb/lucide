@@ -106,6 +106,10 @@ void main() {
 
     await tester.tap(find.text('Jeu'));
     await settle(tester);
+    // The game opens on its welcome screen, then the first round.
+    expect(find.text('Le score à viser'), findsOneWidget);
+    await tester.tap(find.text('Commencer la partie'));
+    await tester.pumpAndSettle();
     expect(find.text('Manche 1 sur 10'), findsOneWidget);
 
     // Before the answer, the company and the context (folded) are shown.

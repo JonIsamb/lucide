@@ -7,6 +7,7 @@ import 'package:lucide/features/catalog/domain/instrument.dart';
 import 'package:lucide/features/game/data/game_repository.dart';
 import 'package:lucide/features/game/domain/earnings_announcement.dart';
 import 'package:lucide/features/game/domain/game_round.dart';
+import 'package:lucide/features/game/domain/played_game.dart';
 import 'package:lucide/features/game/domain/market_event.dart';
 import 'package:lucide/features/game/presentation/game_screen.dart';
 
@@ -74,6 +75,8 @@ void main() {
     WidgetTester tester,
     List<GameRound> rounds, {
     Size? size,
+    bool leaveIntro = true,
+    List<PlayedGame> played = const [],
   }) async {
     wentHome = false;
     // Tall by default: the context card pushes the answers down the page.
@@ -83,7 +86,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          gameRepositoryProvider.overrideWithValue(FakeGameRepository(rounds)),
+          gameRepositoryProvider.overrideWithValue(
+            FakeGameRepository(rounds, played: played),
+          ),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -93,6 +98,10 @@ void main() {
     );
     // The rounds arrive one frame later: they are drawn asynchronously.
     await tester.pumpAndSettle();
+    if (leaveIntro) {
+      await tester.tap(find.text('Commencer la partie'));
+      await tester.pumpAndSettle();
+    }
   }
 
   /// Opens the folded context card of the round on screen.
@@ -100,6 +109,61 @@ void main() {
     await tester.tap(find.text('Voir le contexte'));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('the welcome screen shows the target, the advice and no round', (
+    tester,
+  ) async {
+    await pumpGame(tester, [
+      round(rises: false),
+      round(rises: true),
+    ], leaveIntro: false);
+
+    expect(find.text('Le score à viser'), findsOneWidget);
+    expect(find.text('Pour bien aborder le jeu'), findsOneWidget);
+    expect(find.textContaining('Au hasard (pile ou face)'), findsOneWidget);
+    expect(
+      find.text(
+        'Pas encore de partie. Tes scores apparaîtront ici, comparés au hasard.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Plus haut'), findsNothing);
+    expect(find.text('Manche 1 sur 2'), findsNothing);
+
+    await tester.tap(find.text('Commencer la partie'));
+    await tester.pumpAndSettle();
+    expect(find.text('Manche 1 sur 2'), findsOneWidget);
+  });
+
+  testWidgets('the welcome screen summarizes the past games', (tester) async {
+    await pumpGame(
+      tester,
+      [round(rises: false), round(rises: true)],
+      leaveIntro: false,
+      played: [
+        PlayedGame(
+          finishedAt: DateTime.utc(2026, 11, 10),
+          score: 9,
+          roundCount: 10,
+        ),
+        PlayedGame(
+          finishedAt: DateTime.utc(2026, 11, 8),
+          score: 5,
+          roundCount: 10,
+        ),
+      ],
+    );
+    await tester.scrollUntilVisible(
+      find.text('9/10'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(find.text('9/10'), findsWidgets);
+    expect(find.text('Au dessus du hasard'), findsOneWidget);
+    expect(find.text('Comme le hasard'), findsOneWidget);
+    expect(find.text('meilleur score'), findsOneWidget);
+  });
 
   testWidgets('a round names the company and asks the question', (
     tester,
@@ -475,7 +539,7 @@ void main() {
   testWidgets('without any round, the game says it is unavailable', (
     tester,
   ) async {
-    await pumpGame(tester, const []);
+    await pumpGame(tester, const [], leaveIntro: false);
 
     expect(
       find.text("Le jeu n'est pas disponible pour l'instant."),

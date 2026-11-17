@@ -78,9 +78,6 @@ class SimulatorScreen extends ConsumerWidget {
             onBuyDay: controller.setBuyDay,
             onSellDay: controller.setSellDay,
             onEnvelope: controller.setEnvelope,
-            onBrokerageKind: controller.setBrokerageKind,
-            onBrokerage: controller.setBrokerageText,
-            onAnnualFee: controller.setAnnualFeeText,
             onCompute: controller.compute,
           ),
           SavedList(

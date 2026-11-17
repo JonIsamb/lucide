@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../catalog/domain/instrument.dart';
+import '../../catalog/domain/weekly_candle.dart';
 import '../data/simulator_repository.dart';
 import '../domain/input_parsing.dart';
 import '../domain/run_simulation.dart';
@@ -60,12 +63,80 @@ class SimulatorController extends AsyncNotifier<SimulatorState> {
 
   // --- Form ------------------------------------------------------------------
 
-  /// Picks the asset and proposes the last year of its history.
+  /// Picks the asset and proposes the last year of its history. An asset
+  /// with no stored prices has them downloaded.
   Future<void> selectAsset(Instrument asset) async {
     final current = state.value;
     if (current == null) return;
-    final candles = await _repository.loadCandles(asset.symbol);
+    var candles = await _repository.loadCandles(asset.symbol);
     if (!ref.mounted) return;
+    final needsDownload = candles.isEmpty;
+    _showAsset(
+      asset,
+      candles,
+      needsDownload ? PricesStatus.downloading : PricesStatus.ready,
+    );
+    if (!needsDownload) {
+      unawaited(_completeHistory(asset));
+      return;
+    }
+
+    var status = PricesStatus.failed;
+    try {
+      candles = await _repository.downloadCandles(asset.symbol);
+      if (candles.isNotEmpty) status = PricesStatus.ready;
+    } on Object {
+      // No network, quota reached, unknown symbol: the form says so and
+      // offers to try again.
+    }
+    // The user may have chosen another asset in the meantime.
+    if (!ref.mounted || state.value?.asset != asset) return;
+    _showAsset(asset, candles, status);
+  }
+
+  /// Opens a fresh form for the asset [symbol], as when coming from its
+  /// detail screen: any earlier result or half-filled form is dropped.
+  /// An unknown symbol leaves the form empty.
+  Future<void> startWith(String symbol) async {
+    final current = await future;
+    if (!ref.mounted) return;
+    Instrument? asset;
+    for (final i in current.instruments) {
+      if (i.symbol == symbol) asset = i;
+    }
+    state = AsyncData(
+      SimulatorState(
+        instruments: current.instruments,
+        fxRates: current.fxRates,
+        inflation: current.inflation,
+        saved: current.saved,
+      ),
+    );
+    if (asset != null) await selectAsset(asset);
+  }
+
+  /// Brings older or missing weeks to the stored prices, in the background,
+  /// so the date pickers reach the true start of the history. The dates
+  /// already chosen are kept. Failing is fine: the stored prices stay valid.
+  Future<void> _completeHistory(Instrument asset) async {
+    try {
+      final fresh = await _repository.refreshCandlesIfNeeded(asset.symbol);
+      final current = state.value;
+      if (fresh == null || !ref.mounted || current?.asset != asset) return;
+      state = AsyncData(current!.copyWith(candles: fresh));
+    } on Object {
+      return;
+    }
+  }
+
+  /// Puts [asset] and its [candles] in the form, with the proposed dates.
+  void _showAsset(
+    Instrument asset,
+    List<WeeklyCandle> candles,
+    PricesStatus status,
+  ) {
+    final current = state.value;
+    if (current == null) return;
     final range = candles.isEmpty
         ? null
         : (
@@ -83,6 +154,7 @@ class SimulatorController extends AsyncNotifier<SimulatorState> {
       current.copyWith(
         asset: asset,
         candles: candles,
+        pricesStatus: status,
         buyDay: buy,
         sellDay: sell,
         result: null,
@@ -99,24 +171,31 @@ class SimulatorController extends AsyncNotifier<SimulatorState> {
 
   void setSellDay(DateTime day) => _edit((s) => s.copyWith(sellDay: day));
 
-  void setEnvelope(Envelope envelope) =>
-      _edit((s) => s.copyWith(envelope: envelope));
-
-  void setBrokerageKind(BrokerageKind kind) =>
-      _edit((s) => s.copyWith(brokerageKind: kind));
-
-  /// An empty field means no fee; an unreadable one is refused later.
-  void setBrokerageText(String text) => _edit(
-    (s) => s.copyWith(
-      brokerageValue: text.trim().isEmpty ? 0.0 : parseDecimalInput(text),
-    ),
-  );
-
-  void setAnnualFeeText(String text) => _edit(
-    (s) => s.copyWith(
-      annualFeePercent: text.trim().isEmpty ? 0.0 : parseDecimalInput(text),
-    ),
-  );
+  /// A PEA only holds eligible assets: the list shrinks, and an asset that
+  /// no longer fits is dropped with its prices and dates.
+  void setEnvelope(Envelope envelope) {
+    final current = state.value;
+    if (current == null) return;
+    final dropAsset =
+        envelope == Envelope.pea &&
+        current.asset != null &&
+        !current.asset!.peaEligible;
+    state = AsyncData(
+      dropAsset
+          ? current.copyWith(
+              envelope: envelope,
+              asset: null,
+              candles: const [],
+              pricesStatus: PricesStatus.ready,
+              buyDay: null,
+              sellDay: null,
+              result: null,
+              error: null,
+              savedId: null,
+            )
+          : current.copyWith(envelope: envelope, error: null),
+    );
+  }
 
   /// Changing the form drops the previous message, never the typed values.
   void _edit(SimulatorState Function(SimulatorState) change) {
@@ -130,7 +209,9 @@ class SimulatorController extends AsyncNotifier<SimulatorState> {
   /// Validates the form and computes the cascade.
   void compute() {
     final current = state.value;
-    if (current == null) return;
+    if (current == null || current.pricesStatus == PricesStatus.downloading) {
+      return;
+    }
 
     final error = _firstError(current);
     if (error != null) {
@@ -149,9 +230,9 @@ class SimulatorController extends AsyncNotifier<SimulatorState> {
         buyDay: current.buyDay!,
         sellDay: current.sellDay!,
         envelope: current.envelope,
-        brokerageKind: current.brokerageKind,
-        brokerageValue: current.brokerageValue!,
-        annualFeePercent: current.annualFeePercent!,
+        brokerageKind: BrokerageKind.percent,
+        brokerageValue: defaultBrokeragePercent,
+        annualFeePercent: defaultAnnualFeePercent,
       ),
       candles: current.candles,
       fxRates: current.fxRates,
@@ -171,8 +252,6 @@ class SimulatorController extends AsyncNotifier<SimulatorState> {
   SimulationError? _firstError(SimulatorState s) {
     if (s.asset == null) return SimulationError.noAsset;
     if (s.amount == null) return SimulationError.amountNotPositive;
-    if (s.brokerageValue == null) return SimulationError.brokerageOutOfRange;
-    if (s.annualFeePercent == null) return SimulationError.annualFeeOutOfRange;
     if (s.candles.isEmpty) return SimulationError.noPrices;
     if (s.buyDay == null || s.sellDay == null) {
       return SimulationError.datesInverted;

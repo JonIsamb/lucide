@@ -1,5 +1,6 @@
 import '../../catalog/domain/instrument.dart';
 import '../../catalog/domain/weekly_candle.dart';
+import '../domain/projection.dart';
 import '../domain/saved_simulation.dart';
 import '../domain/simulation_error.dart';
 import '../domain/simulation_params.dart';
@@ -20,6 +21,18 @@ enum SimulatorPhase {
   saved,
 }
 
+/// Where the prices of the chosen asset stand.
+enum PricesStatus {
+  /// Stored, or not asked for yet.
+  ready,
+
+  /// Being downloaded: the asset had none stored.
+  downloading,
+
+  /// The download failed (no network, quota, unknown symbol).
+  failed,
+}
+
 const _unset = Object();
 
 /// Everything the Simulations tab displays. Immutable: the controller
@@ -32,13 +45,11 @@ class SimulatorState {
     required this.saved,
     this.asset,
     this.candles = const [],
+    this.pricesStatus = PricesStatus.ready,
     this.amount,
     this.buyDay,
     this.sellDay,
     this.envelope = Envelope.securitiesAccount,
-    this.brokerageKind = BrokerageKind.percent,
-    this.brokerageValue = 0,
-    this.annualFeePercent = 0,
     this.result,
     this.error,
     this.savedId,
@@ -56,13 +67,11 @@ class SimulatorState {
 
   /// Weekly prices of [asset], oldest first.
   final List<WeeklyCandle> candles;
+  final PricesStatus pricesStatus;
   final double? amount;
   final DateTime? buyDay;
   final DateTime? sellDay;
   final Envelope envelope;
-  final BrokerageKind brokerageKind;
-  final double? brokerageValue;
-  final double? annualFeePercent;
 
   // The outcome.
   final SimulationResult? result;
@@ -92,9 +101,27 @@ class SimulatorState {
     );
   }
 
-  /// A PEA is selected for an asset that cannot be held in one.
-  bool get peaRefused =>
-      envelope == Envelope.pea && asset != null && !asset!.peaEligible;
+  /// Last day a date picker accepts: a prediction may go past the last
+  /// known price. Null while the asset has no stored prices.
+  DateTime? get lastPickableDay =>
+      candles.isEmpty ? null : lastProjectableDay(candles);
+
+  /// A chosen date falls after the last known price: the result would be a
+  /// prediction.
+  bool get isPrediction {
+    if (candles.isEmpty) return false;
+    final known = lastKnownDay(candles);
+    return (buyDay?.isAfter(known) ?? false) ||
+        (sellDay?.isAfter(known) ?? false);
+  }
+
+  /// Assets the picker offers: only the PEA-eligible ones with a PEA.
+  List<Instrument> get selectableInstruments => envelope == Envelope.pea
+      ? [
+          for (final i in instruments)
+            if (i.peaEligible) i,
+        ]
+      : instruments;
 
   SimulatorState copyWith({
     List<FxRate>? fxRates,
@@ -102,13 +129,11 @@ class SimulatorState {
     List<SavedSimulation>? saved,
     Object? asset = _unset,
     List<WeeklyCandle>? candles,
+    PricesStatus? pricesStatus,
     Object? amount = _unset,
     Object? buyDay = _unset,
     Object? sellDay = _unset,
     Envelope? envelope,
-    BrokerageKind? brokerageKind,
-    Object? brokerageValue = _unset,
-    Object? annualFeePercent = _unset,
     Object? result = _unset,
     Object? error = _unset,
     Object? savedId = _unset,
@@ -121,17 +146,11 @@ class SimulatorState {
       saved: saved ?? this.saved,
       asset: identical(asset, _unset) ? this.asset : asset as Instrument?,
       candles: candles ?? this.candles,
+      pricesStatus: pricesStatus ?? this.pricesStatus,
       amount: identical(amount, _unset) ? this.amount : amount as double?,
       buyDay: identical(buyDay, _unset) ? this.buyDay : buyDay as DateTime?,
       sellDay: identical(sellDay, _unset) ? this.sellDay : sellDay as DateTime?,
       envelope: envelope ?? this.envelope,
-      brokerageKind: brokerageKind ?? this.brokerageKind,
-      brokerageValue: identical(brokerageValue, _unset)
-          ? this.brokerageValue
-          : brokerageValue as double?,
-      annualFeePercent: identical(annualFeePercent, _unset)
-          ? this.annualFeePercent
-          : annualFeePercent as double?,
       result: identical(result, _unset)
           ? this.result
           : result as SimulationResult?,

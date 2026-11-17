@@ -18,9 +18,6 @@ class SimulationForm extends StatefulWidget {
     required this.onBuyDay,
     required this.onSellDay,
     required this.onEnvelope,
-    required this.onBrokerageKind,
-    required this.onBrokerage,
-    required this.onAnnualFee,
     required this.onCompute,
   });
 
@@ -30,9 +27,6 @@ class SimulationForm extends StatefulWidget {
   final ValueChanged<DateTime> onBuyDay;
   final ValueChanged<DateTime> onSellDay;
   final ValueChanged<Envelope> onEnvelope;
-  final ValueChanged<BrokerageKind> onBrokerageKind;
-  final ValueChanged<String> onBrokerage;
-  final ValueChanged<String> onAnnualFee;
   final VoidCallback onCompute;
 
   @override
@@ -44,32 +38,22 @@ class _SimulationFormState extends State<SimulationForm> {
   // the values kept by the Notifier, so coming back from a result keeps
   // the form filled.
   late final TextEditingController _amount;
-  late final TextEditingController _brokerage;
-  late final TextEditingController _annualFee;
 
   @override
   void initState() {
     super.initState();
     final s = widget.state;
     _amount = TextEditingController(text: _text(s.amount));
-    _brokerage = TextEditingController(
-      text: _text(s.brokerageValue, zeroIsEmpty: true),
-    );
-    _annualFee = TextEditingController(
-      text: _text(s.annualFeePercent, zeroIsEmpty: true),
-    );
   }
 
   @override
   void dispose() {
     _amount.dispose();
-    _brokerage.dispose();
-    _annualFee.dispose();
     super.dispose();
   }
 
-  String _text(double? value, {bool zeroIsEmpty = false}) {
-    if (value == null || (zeroIsEmpty && value == 0)) return '';
+  String _text(double? value) {
+    if (value == null) return '';
     return formatDecimal(
       value,
       decimals: value == value.roundToDouble() ? 0 : 2,
@@ -80,7 +64,8 @@ class _SimulationFormState extends State<SimulationForm> {
     final picked = await showModalBottomSheet<Instrument>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _AssetPicker(instruments: widget.state.instruments),
+      builder: (_) =>
+          _AssetPicker(instruments: widget.state.selectableInstruments),
     );
     if (picked != null) widget.onAsset(picked);
   }
@@ -90,24 +75,30 @@ class _SimulationFormState extends State<SimulationForm> {
     ValueChanged<DateTime> onPicked,
   ) async {
     final range = widget.state.priceRange;
-    if (range == null) return;
+    final lastDay = widget.state.lastPickableDay;
+    if (range == null || lastDay == null) return;
     final initial = current == null
         ? range.last
         : current.isBefore(range.first)
         ? range.first
-        : current.isAfter(range.last)
-        ? range.last
+        : current.isAfter(lastDay)
+        ? lastDay
         : current;
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
       firstDate: range.first,
-      lastDate: range.last,
+      lastDate: lastDay,
     );
     if (picked != null) {
       onPicked(DateTime.utc(picked.year, picked.month, picked.day));
     }
   }
+
+  /// The fixed fees, as a sentence for the envelope card.
+  String _fees() =>
+      'courtage ${formatDecimal(defaultBrokeragePercent, decimals: 1)} % '
+      'à l’achat et à la vente, aucun frais annuel';
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +114,36 @@ class _SimulationFormState extends State<SimulationForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _Label('Où est détenu l’actif ?'),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<Envelope>(
+                  showSelectedIcon: false,
+                  segments: [
+                    for (final e in Envelope.values)
+                      ButtonSegment(value: e, label: Text(e.label)),
+                  ],
+                  selected: {s.envelope},
+                  onSelectionChanged: (v) => widget.onEnvelope(v.first),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                s.envelope == Envelope.pea
+                    ? 'Seuls les actifs éligibles au PEA sont proposés. '
+                          'Frais standards : ${_fees()}.'
+                    : 'Frais standards : ${_fees()}.',
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        DetailCard(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               _Label('Actif'),
               _Field(
                 onTap: _pickAsset,
@@ -132,13 +153,35 @@ class _SimulationFormState extends State<SimulationForm> {
                     : '${s.asset!.name} (${s.asset!.shortCode})',
                 placeholder: s.asset == null,
               ),
-              if (noPrices) ...[
+              if (s.pricesStatus == PricesStatus.downloading) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Téléchargement des cours…',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ] else if (noPrices) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Aucun cours enregistré pour cet actif.',
+                  'Les cours de cet actif ne sont pas enregistrés et n’ont '
+                  'pas pu être téléchargés. Vérifie ta connexion.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.fall,
                   ),
+                ),
+                TextButton.icon(
+                  onPressed: () => widget.onAsset(s.asset!),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Réessayer'),
                 ),
               ],
               const SizedBox(height: 16),
@@ -198,97 +241,26 @@ class _SimulationFormState extends State<SimulationForm> {
                 Text(
                   'Cours disponibles du ${formatDay(s.priceRange!.first)} '
                   'au ${formatDay(s.priceRange!.last)}. Un jour sans cotation '
-                  'prend la dernière clôture connue.',
+                  'prend la dernière clôture connue. Une date plus tardive '
+                  'donne une prédiction.',
                   style: theme.textTheme.bodySmall,
+                ),
+              ],
+              if (s.isPrediction) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Prédiction purement spéculative : au delà du dernier cours '
+                  'connu, le prix prolonge la croissance moyenne passée.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.fall,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ],
           ),
         ),
         const SizedBox(height: 12),
-        DetailCard(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Label('Où est détenu l’actif ?'),
-              SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<Envelope>(
-                  showSelectedIcon: false,
-                  segments: [
-                    for (final e in Envelope.values)
-                      ButtonSegment(value: e, label: Text(e.label)),
-                  ],
-                  selected: {s.envelope},
-                  onSelectionChanged: (v) => widget.onEnvelope(v.first),
-                ),
-              ),
-              if (s.peaRefused) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Ce PEA est impossible pour cet actif : il n’accepte que des '
-                  'titres européens. Choisis le compte titres.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.fall,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              _Label('Frais de courtage (achat et vente)'),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _brokerage,
-                      onChanged: widget.onBrokerage,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: '0',
-                        suffixText: s.brokerageKind == BrokerageKind.percent
-                            ? '%'
-                            : '€',
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  SegmentedButton<BrokerageKind>(
-                    showSelectedIcon: false,
-                    segments: const [
-                      ButtonSegment(
-                        value: BrokerageKind.percent,
-                        label: Text('%'),
-                      ),
-                      ButtonSegment(
-                        value: BrokerageKind.amount,
-                        label: Text('€'),
-                      ),
-                    ],
-                    selected: {s.brokerageKind},
-                    onSelectionChanged: (v) => widget.onBrokerageKind(v.first),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _Label('Frais annuels'),
-              TextField(
-                controller: _annualFee,
-                onChanged: widget.onAnnualFee,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  hintText: '0',
-                  suffixText: '% par an',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-        ),
         const SizedBox(height: 16),
         FilledButton(
           onPressed: widget.onCompute,

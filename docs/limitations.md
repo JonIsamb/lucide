@@ -44,6 +44,7 @@ Ce fichier alimente le rapport.
 - **Change.** Seuls EUR et USD existent. Un actif en euros n'a pas d'effet de change ; un actif en dollars utilise le taux Frankfurter du jour, ou du dernier jour de cotation antérieur (week-ends, jours fériés). Les cours ne sont pas convertis jour par jour : seuls les taux aux deux dates comptent.
 - **Option pour le barème progressif** hors périmètre : seul le prélèvement forfaitaire est simulé.
 - **Frais.** Courtage identique à l'achat et à la vente (montant fixe, ou pourcentage du montant investi à l'achat et du produit brut à la vente). Frais annuels proratisés sur le montant investi, base 365 jours. Bornes choisies pour la pédagogie, pas issues d'une règle : courtage jusqu'à 5 % (ou jusqu'au montant investi s'il est en euros), frais annuels de 0 à 5 %.
+- **Frais standards fixes.** Le formulaire n'a plus de champ de frais : courtage de 0,5 % à l'achat et à la vente, aucun frais annuel (`defaultBrokeragePercent`, `defaultAnnualFeePercent`). Ordre de grandeur des courtiers en ligne français (grille Boursorama, plafonnée à 0,5 % sur PEA ; Trade Republic prend 1 € fixe par ordre ; Revolut ne propose pas de PEA), tiré de comparatifs grand public de 2026 et non vérifié sur les grilles officielles. Les frais de gestion des ETF sont déjà dans les cours.
 - **Base d'imposition.** Produit net de vente (après frais de vente et frais annuels) moins coût d'acquisition frais d'achat inclus. Pas de report des moins-values.
 - **Inflation.** Taux annuel moyen France de la Banque mondiale (`FP.CPI.TOTL.ZG`), composé par année civile, au prorata des jours pour les années partielles. Une année sans taux publié (l'année en cours, souvent l'année précédente) reprend le dernier taux connu, et le résultat est marqué « estimé ». Les données embarquées s'arrêtent à 2025 : toute simulation touchant 2026 est estimée tant que le réseau n'a pas apporté la valeur.
 - **Pouvoir d'achat en euros du jour d'achat.** « Valeur réelle » = montant investi × (1 + rendement réel), exprimée en euros de la date d'achat.
@@ -93,3 +94,16 @@ Ce fichier alimente le rapport.
 - **34 actifs au lieu de 30.** Le cahier des charges parle de 30 actifs ; les 4 actifs PEA s'ajoutent aux 30 existants.
 - **Éligibilité saisie à la main.** `peaEligible` est écrit dans `catalog.json`. Les deux actions sont éligibles par la règle du PEA (sociétés françaises) ; pour les ETF, l'éligibilité est indiquée par les courtiers (par exemple Fortuneo pour CW8), sans confirmation officielle d'Amundi ou de l'AMF trouvée.
 
+
+## Prédiction (simulation après le dernier cours connu)
+
+- **Ce n'est pas une prévision.** Après le dernier cours connu, le prix prolonge la croissance annuelle moyenne de tout l'historique stocké : (dernier cours / premier cours) ^ (365 / jours) − 1, appliquée aux années écoulées depuis la dernière bougie. Un historique court ou une période exceptionnelle donne un chiffre peu fiable, et rien n'est modélisé de la volatilité. Le résultat est marqué « purement spéculatif » dans le formulaire et sur l'écran de résultat, et sauvegardé avec ce marquage.
+- **Quand est-ce spéculatif ?** Dès que la date d'achat ou de vente dépasse le dernier jour couvert par un cours (dernière bougie hebdomadaire + 6 jours). Jusqu'à cette date le résultat est calculé sur les cours réels. Si le cache est ancien, une vente « aujourd'hui » peut donc être marquée spéculative.
+- **Horizon limité à 10 ans** après le dernier cours connu (borne choisie, pas une règle) : au delà, la croissance composée donne des valeurs sans signification.
+- **Change et inflation.** Le dernier taux EUR/USD connu est conservé pour les dates futures. L'inflation des années futures reprend la dernière année connue, comme pour les années récentes (résultat marqué estimé).
+- **Historique de 10 ans.** Le téléchargement complet demande 521 semaines (au lieu de 261). La fiche garde sa période « 5 ans » (261 semaines). Les séries déjà en cache avec 250 à 399 bougies sont retéléchargées une fois en entier ; une vraie histoire de cette longueur est retéléchargée à chaque rafraîchissement (1 crédit).
+
+## Hors connexion et profil
+
+- **Détection par DNS, toutes les 15 s.** Un réseau captif ou un fournisseur en panne alors que le DNS répond n'est pas vu comme hors connexion : les écrans l'affichent alors par leurs propres erreurs de requête. Après une coupure, le bandeau peut mettre jusqu'à 15 s à apparaître ou à disparaître.
+- **Profil limité au prénom.** Pas de compte ni de sauvegarde en ligne : le profil est perdu si l'app est désinstallée. Les préférences ne sont pas chiffrées.

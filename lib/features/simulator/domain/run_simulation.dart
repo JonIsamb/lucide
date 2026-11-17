@@ -5,6 +5,7 @@ import '../../catalog/domain/instrument.dart';
 import '../../catalog/domain/weekly_candle.dart';
 import 'fiscal_rules_2026.dart';
 import 'fisher.dart';
+import 'projection.dart';
 import 'simulation_error.dart';
 import 'simulation_params.dart';
 import 'simulation_result.dart';
@@ -17,10 +18,6 @@ class SimulationOutcome {
   final SimulationResult? result;
   final SimulationError? error;
 }
-
-/// A weekly candle covers 7 days: a day is inside the history up to 6 days
-/// after the first day of the last candle.
-const _lastCandleCoverage = Duration(days: 6);
 
 /// Close of the latest candle that started on or before [day]: a day
 /// without a price takes the last earlier one. Null before the first candle.
@@ -92,11 +89,24 @@ SimulationOutcome runSimulation({
   if (params.buyDay.isBefore(candles.first.date)) {
     return const SimulationOutcome.failure(SimulationError.buyBeforeHistory);
   }
-  if (params.sellDay.isAfter(candles.last.date.add(_lastCandleCoverage))) {
-    return const SimulationOutcome.failure(SimulationError.sellAfterHistory);
+  if (params.sellDay.isAfter(lastProjectableDay(candles))) {
+    return const SimulationOutcome.failure(SimulationError.horizonTooFar);
   }
-  final buyPrice = closeOnOrBefore(candles, params.buyDay);
-  final sellPrice = closeOnOrBefore(candles, params.sellDay);
+
+  // A day after the last known price gets a projected price: the result is
+  // then a speculation, and it says so.
+  final known = lastKnownDay(candles);
+  final speculative =
+      params.buyDay.isAfter(known) || params.sellDay.isAfter(known);
+  final growth = speculative ? historicalAnnualGrowth(candles) : null;
+  if (speculative && growth == null) {
+    return const SimulationOutcome.failure(SimulationError.noGrowth);
+  }
+  double? priceOn(DateTime day) => day.isAfter(known)
+      ? projectedClose(candles, day, growth!)
+      : closeOnOrBefore(candles, day);
+  final buyPrice = priceOn(params.buyDay);
+  final sellPrice = priceOn(params.sellDay);
   if (buyPrice == null ||
       sellPrice == null ||
       buyPrice <= 0 ||
@@ -186,6 +196,8 @@ SimulationOutcome runSimulation({
       cumulativeInflation: inflation.cumulative,
       inflationIsEstimate: inflation.isEstimate,
       holdingDays: holdingDays,
+      isSpeculative: speculative,
+      assumedAnnualGrowth: growth,
     ),
   );
 }

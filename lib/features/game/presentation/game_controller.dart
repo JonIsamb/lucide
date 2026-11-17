@@ -15,10 +15,24 @@ final gameControllerProvider = AsyncNotifierProvider<GameController, GameState>(
 /// Receives the player's actions and turns them into a new [GameState].
 /// The screens only display that state.
 class GameController extends AsyncNotifier<GameState> {
+  /// True when the next game skips the welcome screen ("Rejouer").
+  bool _skipIntro = false;
+
   /// A new game: the repository draws its rounds from the stored prices.
+  /// It opens on the welcome screen, unless the player asked to replay.
   @override
   Future<GameState> build() async {
-    return GameState(rounds: await ref.read(gameRepositoryProvider).drawGame());
+    final rounds = await ref.read(gameRepositoryProvider).drawGame();
+    final phase = _skipIntro ? GamePhase.playing : GamePhase.intro;
+    _skipIntro = false;
+    return GameState(rounds: rounds, phase: phase);
+  }
+
+  /// The player leaves the welcome screen and sees the first round.
+  void start() {
+    final current = state.value;
+    if (current == null || current.phase != GamePhase.intro) return;
+    state = AsyncData(current.copyWith(phase: GamePhase.playing));
   }
 
   /// The player bets on the round on screen: the hidden weeks are shown.
@@ -76,6 +90,12 @@ class GameController extends AsyncNotifier<GameState> {
     }
   }
 
-  /// Starts a new game, with newly drawn rounds.
+  /// New rounds, back on the welcome screen.
   void restart() => ref.invalidateSelf();
+
+  /// New rounds, straight to the first one.
+  void replay() {
+    _skipIntro = true;
+    ref.invalidateSelf();
+  }
 }

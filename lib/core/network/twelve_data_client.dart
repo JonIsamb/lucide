@@ -7,11 +7,12 @@ import 'json_values.dart';
 import 'market_data_api.dart';
 import 'rate_limiter.dart';
 
-/// How many weekly candles we ask for on a full download: about 5 years.
+/// How many weekly candles we ask for on a full download: about 10 years.
 ///
-/// It costs 1 credit whatever the size, and the detail screen (5-year
-/// chart) and the game (random 30-week windows) need more than one year.
-const fullHistoryWeeks = 261;
+/// It costs 1 credit whatever the size. The simulator lets the user buy as
+/// far back as the history goes; the detail screen (5-year chart) and the
+/// game (random 30-week windows) need less.
+const fullHistoryWeeks = 521;
 
 /// Talks to the Twelve Data API. It only knows HTTP and JSON: deciding
 /// when to call it is the repository's job.

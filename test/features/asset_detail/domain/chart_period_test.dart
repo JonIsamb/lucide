@@ -18,7 +18,7 @@ void main() {
   });
 
   test('5 years is the whole stored history', () {
-    expect(candlesFor(history, ChartPeriod.fiveYears), hasLength(300));
+    expect(candlesFor(history, ChartPeriod.fiveYears), hasLength(261));
   });
 
   test('a history shorter than the period is returned whole', () {

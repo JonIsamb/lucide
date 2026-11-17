@@ -70,6 +70,87 @@ SimulationOutcome _run(
 );
 
 void main() {
+  group('prediction', () {
+    final candles = _candles(100, 200);
+
+    test('a sale after the last known price is speculative and grows', () {
+      final result = _run(
+        _params(sellDay: DateTime.utc(2026, 1, 6)),
+        candles: candles,
+      ).result!;
+      expect(result.isSpeculative, isTrue);
+      // 100 -> 200 in 1827 days: about +14.9 % a year.
+      expect(result.assumedAnnualGrowth, closeTo(0.1493, 1e-3));
+      // Exactly one year after the last candle: one year of growth.
+      expect(
+        result.sellPrice,
+        closeTo(200 * (1 + result.assumedAnnualGrowth!), 1e-9),
+      );
+    });
+
+    test('a constant history projects a constant price', () {
+      final result = _run(
+        _params(sellDay: DateTime.utc(2027, 1, 6)),
+        candles: _candles(100, 100),
+      ).result!;
+      expect(result.isSpeculative, isTrue);
+      expect(result.sellPrice, closeTo(100, 1e-9));
+      expect(result.grossPerformance, closeTo(0, 1e-9));
+    });
+
+    test('a purchase in the future is projected too', () {
+      final result = _run(
+        _params(
+          buyDay: DateTime.utc(2026, 1, 6),
+          sellDay: DateTime.utc(2027, 1, 6),
+        ),
+        candles: candles,
+      ).result!;
+      expect(result.isSpeculative, isTrue);
+      expect(result.grossPerformance, closeTo(0.1493, 2e-3));
+    });
+
+    test('ten years after the last known price is the limit', () {
+      expect(
+        _run(
+          _params(sellDay: DateTime.utc(2035, 1, 12)),
+          candles: candles,
+        ).error,
+        isNull,
+      );
+      expect(
+        _run(
+          _params(sellDay: DateTime.utc(2035, 1, 13)),
+          candles: candles,
+        ).error,
+        SimulationError.horizonTooFar,
+      );
+    });
+
+    test('one candle gives no growth to carry forward', () {
+      expect(
+        _run(
+          _params(
+            buyDay: DateTime.utc(2025, 1, 6),
+            sellDay: DateTime.utc(2026, 1, 6),
+          ),
+          candles: [candle(DateTime.utc(2025, 1, 6), 100)],
+        ).error,
+        SimulationError.noGrowth,
+      );
+    });
+
+    test('a speculative result survives saving and reading', () {
+      final result = _run(
+        _params(sellDay: DateTime.utc(2026, 1, 6)),
+        candles: candles,
+      ).result!;
+      final copy = SimulationResult.fromJson(result.toJson());
+      expect(copy.isSpeculative, isTrue);
+      expect(copy.assumedAnnualGrowth, result.assumedAnnualGrowth);
+    });
+  });
+
   group('cascade', () {
     test('the bars add up to the final result', () {
       final result = _run(
@@ -218,17 +299,18 @@ void main() {
       );
     });
 
-    test('dates outside the history are refused', () {
+    test('a buy before the history is refused', () {
       expect(
         _run(_params(buyDay: DateTime.utc(2019, 12, 31))).error,
         SimulationError.buyBeforeHistory,
       );
-      expect(
-        _run(_params(sellDay: DateTime.utc(2025, 1, 13))).error,
-        SimulationError.sellAfterHistory,
-      );
-      // Still inside the last candle's week.
-      expect(_run(_params(sellDay: DateTime.utc(2025, 1, 12))).error, isNull);
+    });
+
+    test('a sale up to the end of the last candle is not speculative', () {
+      final outcome = _run(_params(sellDay: DateTime.utc(2025, 1, 12)));
+      expect(outcome.error, isNull);
+      expect(outcome.result!.isSpeculative, isFalse);
+      expect(outcome.result!.assumedAnnualGrowth, isNull);
     });
 
     test('a day without price takes the last earlier close', () {

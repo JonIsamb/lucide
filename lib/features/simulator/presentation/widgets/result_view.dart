@@ -98,10 +98,16 @@ class _ResultViewState extends State<ResultView>
         ),
         const SizedBox(height: 4),
         Text(
-          '${params.envelope.label} · du ${formatDay(params.buyDay)} '
+          '${result.isSpeculative ? 'Prédiction' : params.envelope.label} · '
+          '${result.isSpeculative ? '${params.envelope.label} · ' : ''}'
+          'du ${formatDay(params.buyDay)} '
           'au ${formatDay(params.sellDay)}',
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        if (result.isSpeculative) ...[
+          const SizedBox(height: 12),
+          _SpeculativeBanner(result: result),
+        ],
         const SizedBox(height: 16),
         // Only the animated parts rebuild at every frame.
         AnimatedBuilder(
@@ -175,6 +181,35 @@ class _ResultViewState extends State<ResultView>
   String _chartDescription(SimulationResult r) =>
       'Gain annoncé ${formatPercent(r.grossPerformance * 100)}, '
       'gain réel en pouvoir d’achat ${formatPercent(r.realPerformance * 100)}.';
+}
+
+/// Tells that the prices after the last known one are a projection.
+class _SpeculativeBanner extends StatelessWidget {
+  const _SpeculativeBanner({required this.result});
+
+  final SimulationResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final growth = result.assumedAnnualGrowth;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.fallTint,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        'Prédiction purement spéculative. Personne ne peut prévoir un cours : '
+        'ce chiffre prolonge la croissance moyenne passée de l’actif'
+        '${growth == null ? '' : ' (${formatPercent(growth * 100)} par an)'}'
+        ' au delà du dernier cours connu. Ce n’est pas un conseil.',
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          color: AppColors.fall,
+        ),
+      ),
+    );
+  }
 }
 
 class _HeroCard extends StatelessWidget {

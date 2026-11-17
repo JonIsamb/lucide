@@ -13,6 +13,14 @@ enum Envelope {
 /// and on the sale.
 enum BrokerageKind { amount, percent }
 
+/// Standard fees applied by the simulator (the form has no field for them).
+/// Order of magnitude of French online brokers: 0.5 % per order (Boursorama's
+/// grid, capped at 0.5 % on a PEA), no custody fee. Fund fees (TER) are
+/// already inside ETF prices. Not checked against a current price list:
+/// see docs/limitations.md.
+const defaultBrokeragePercent = 0.5;
+const defaultAnnualFeePercent = 0.0;
+
 /// Highest broker fee accepted, as a percentage of the amount.
 const maxBrokeragePercent = 5.0;
 

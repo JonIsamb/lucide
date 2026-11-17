@@ -398,3 +398,47 @@ Une entrée par choix : décision, alternative écartée, justification. Ce fich
 - **Décision** : Alpha Vantage date une semaine de son dernier jour de cotation ; le client la date du lundi de cette semaine, comme Twelve Data. Quand une semaine arrive en deux lignes, la plus récente est gardée.
 - **Alternative écartée** : stocker les dates telles quelles.
 - **Justification** : le cache, la fiche et le jeu supposent une bougie par semaine, datée du lundi. Les réponses réelles contiennent des semaines en deux lignes (Noël 2024 : 24 et 27 décembre, sur les quatre actifs) : sans ce choix, l'enregistrement de la série échouait sur la clé primaire (symbole, date). La ligne la plus récente porte la vraie clôture de la semaine.
+
+## Simulation : enveloppe d'abord, frais fixes
+
+### Le choix PEA filtre la liste d'actifs, les frais ne se saisissent plus
+- **Décision :** la carte « Où est détenu l'actif ? » passe avant « Actif ». Avec un PEA, le sélecteur ne propose que les actifs éligibles, et un actif non éligible déjà choisi est retiré. Courtage (0,5 %) et frais annuels (0 %) sont des constantes du domaine, plus des champs.
+- **Alternative écartée :** garder la saisie des frais et le message « PEA impossible ». Le message devient inatteignable (la règle reste vérifiée dans le domaine) et la saisie alourdissait un formulaire destiné à un débutant.
+- **Justification :** on ne peut plus construire une simulation invalide côté interface. Valeurs : ordre de grandeur des courtiers en ligne français, voir `docs/limitations.md`.
+
+## Simulation : historique de 10 ans et prédiction
+
+### Prolonger la croissance moyenne passée, étiquetée spéculative
+- **Décision :** `fullHistoryWeeks` passe à 521 pour que l'achat remonte à 10 ans. Les dates de la simulation peuvent dépasser le dernier cours connu (jusqu'à 10 ans) : le prix est alors projeté par la croissance annuelle moyenne de l'historique (`domain/projection.dart`) et le résultat porte `isSpeculative` et le taux utilisé. Jusqu'au dernier cours connu, rien n'est marqué.
+- **Alternatives écartées :** un tirage aléatoire de trajectoires (non reproductible, plus dur à expliquer) ; un modèle plus fin (hypothèses à inventer, faux sentiment de précision) ; garder 5 ans de cours et laisser l'achat plus ancien impossible.
+- **Justification :** une règle d'une ligne, déterministe, testée, qui colle à la promesse du projet (personne ne prédit une courbe) en l'affichant sans détour. La période « 5 ans » de la fiche est figée à 261 semaines pour ne pas changer d'affichage.
+
+## Profil et détection de la connexion
+
+### Profil dans les préférences, nouvelle dépendance `shared_preferences`
+- **Décision :** le profil (prénom, d'où viennent les initiales de l'accueil) est enregistré avec `shared_preferences` derrière l'interface `ProfileStore`, lue par un `AsyncNotifier`. Il s'ouvre en touchant l'avatar de l'accueil. Une lecture qui échoue donne un profil vide, jamais une erreur.
+- **Alternative écartée :** une table drift. Une paire clé-valeur n'a pas besoin de schéma, de migration ni de DAO, et le choix a été demandé ainsi.
+- **Justification de la dépendance :** package officiel de l'équipe Flutter, sans dépendance native lourde, testable avec `setMockInitialValues`. Rien ne quitte le téléphone.
+
+### Hors connexion détecté automatiquement, sans package
+- **Décision :** `isOfflineProvider` interroge une `ConnectionProbe` (résolution DNS de `api.twelvedata.com`, délai de 3 s) au lancement puis toutes les 15 s. Hors connexion, un bandeau s'affiche au dessus des onglets. Les écrans continuent de lire la base locale, comme avant.
+- **Alternative écartée :** `connectivity_plus`. Il dit si le Wi-Fi est activé, pas si les fournisseurs sont joignables, et ajoute une dépendance native.
+- **Limite :** voir `docs/limitations.md`.
+
+## Simulation : téléchargement des cours à la demande
+
+### Un actif sans cours en base les télécharge au moment du choix
+- **Décision :** `selectAsset` lit la base ; si l'actif n'a aucun cours, il passe en `PricesStatus.downloading` (indicateur dans le formulaire), appelle `SimulatorRepository.downloadCandles` (qui réutilise `CatalogRepository.refreshSeries`, donc le même limiteur de débit et la même écriture en base), puis propose les dates. Un échec donne `PricesStatus.failed`, un message et un bouton « Réessayer ».
+- **Alternative écartée :** renvoyer l'utilisateur vers le catalogue. Une étape de plus pour quelqu'un qui a déjà choisi son actif.
+- **Justification :** la décision cache ou réseau reste dans le dépôt, le Notifier ignore l'origine des données. Un seul actif est téléchargé, jamais le catalogue en masse.
+
+## Jeu : écran d'accueil avant la partie
+
+### Une phase `intro` avant la première manche
+- **Décision :** `GamePhase.intro` est la phase de départ. L'écran montre le principe, le score à viser (les bornes de `chanceBounds`, 2 à 8 sur 10, donc 9 pour dépasser le hasard), un résumé des parties passées (tuiles, cinq dernières parties avec leur verdict face au hasard) et six conseils vrais pour le jeu tel qu'il est construit. « Commencer la partie » lance la première manche ; « Rejouer » (`replay`) saute l'accueil, « Réessayer » et le retour à l'accueil (`restart`) le montrent.
+- **Alternative écartée :** un écran d'accueil séparé, hors du contrôleur. Le résumé lit les mêmes parties enregistrées que le bilan, et la phase reste dans l'état testable.
+- **Justification :** les manches sont tirées avant l'accueil, donc « Commencer » est immédiat et l'absence de cours est signalée dès l'ouverture.
+
+## Simulation : historique complété à l'ouverture d'un actif
+- **Décision :** choisir un actif qui a déjà des cours lance en arrière-plan `refreshSeriesIfNeeded`, qui complète aussi une série restée à 5 ans. Les dates choisies sont conservées.
+- **Justification :** sans cela, la date d'achat la plus ancienne restait celle du téléchargement d'origine tant que la fiche de l'actif n'avait pas été ouverte.

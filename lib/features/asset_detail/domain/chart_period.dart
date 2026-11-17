@@ -1,6 +1,9 @@
 import '../../catalog/domain/asset_metrics.dart';
 import '../../catalog/domain/weekly_candle.dart';
 
+/// Candles of 5 years: the stored history is longer (about 10 years).
+const weeksInFiveYears = 261;
+
 /// The four periods of the detail chart.
 ///
 /// Prices are weekly, so a period is a number of candles: the weeks of the
@@ -10,8 +13,7 @@ enum ChartPeriod {
   sixMonths('6 mois', 27),
   oneYear('1 an', weeksInOneYear),
 
-  /// Null: the whole stored history (about 5 years).
-  fiveYears('5 ans', null);
+  fiveYears('5 ans', weeksInFiveYears);
 
   const ChartPeriod(this.label, this.candleCount);
 

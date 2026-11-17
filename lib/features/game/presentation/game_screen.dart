@@ -15,6 +15,7 @@ import 'widgets/asset_context_card.dart';
 import 'widgets/explanation_card.dart';
 import 'widgets/context_card.dart';
 import 'widgets/game_action_bar.dart';
+import 'widgets/intro_view.dart';
 import 'widgets/guess_buttons.dart';
 import 'widgets/mystery_chart.dart';
 import 'widgets/reveal_banner.dart';
@@ -52,12 +53,27 @@ class GameScreen extends ConsumerWidget {
     }
     if (state.rounds.isEmpty) return _Unavailable(onRetry: controller.restart);
 
+    if (state.phase == GamePhase.intro) {
+      return _GameLayout(
+        actionBar: GameActionBar(
+          primaryLabel: 'Commencer la partie',
+          onPrimary: controller.start,
+        ),
+        children: [
+          GameIntro(
+            games: ref.watch(playedGamesProvider).value ?? const [],
+            stats: ref.watch(gameStatsProvider).value,
+            roundCount: state.rounds.length,
+          ),
+        ],
+      );
+    }
     if (state.phase == GamePhase.finished) {
       return _SummaryView(
         state: state,
         stats: ref.watch(gameStatsProvider).value,
         onGoHome: onGoHome,
-        onReplay: controller.restart,
+        onReplay: controller.replay,
       );
     }
     return _RoundView(
